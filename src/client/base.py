@@ -14,7 +14,7 @@ import sys
 
 sys.path.append(_CURRENT_DIR.parent)
 
-from data.utils.util import get_dataset
+from data.utils.util import get_dataset, set_seed
 
 
 class ClientBase:
@@ -31,6 +31,7 @@ class ClientBase:
         self.device = torch.device(
             "cuda" if gpu and torch.cuda.is_available() else "cpu"
         )
+        set_seed(0)
         self.client_id: int = None
         self.valset: Subset = None
         self.trainset: Subset = None

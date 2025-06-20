@@ -6,9 +6,18 @@ from typing import Dict, List, Tuple, Union
 
 from path import Path
 from torch.utils.data import Subset, random_split
+import torch
+import numpy as np
+import random
 
 _CURRENT_DIR = Path(__file__).parent.abspath()
 _ARGS_DICT = json.load(open(_CURRENT_DIR.parent / "args.json", "r"))
+
+
+def set_seed(seed: int):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def get_dataset(

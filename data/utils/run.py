@@ -21,6 +21,7 @@ from torchvision.datasets import CIFAR10, CIFAR100, EMNIST, MNIST, FashionMNIST
 from constants import MEAN, STD
 from partition import dirichlet_distribution, randomly_assign_classes
 from utils.dataset import CIFARDataset, MNISTDataset
+from util import set_seed
 
 DATASET = {
     "mnist": (MNIST, MNISTDataset),
@@ -39,9 +40,7 @@ def main(args):
     )
     _PICKLES_DIR = _CURRENT_DIR.parent / args.dataset / "pickles"
 
-    np.random.seed(args.seed)
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    set_seed(args.seed)
 
     classes_map = None
     transform = transforms.Compose(
@@ -198,7 +197,7 @@ if __name__ == "__main__":
         default=-1,
         help="Num of classes that one client's data belong to.",
     )
-    parser.add_argument("--seed", type=int, default=int(time.time()))
+    parser.add_argument("--seed", type=int, default=42)
     ################# Dirichlet distribution only #################
     parser.add_argument(
         "--alpha",
