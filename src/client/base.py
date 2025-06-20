@@ -69,12 +69,17 @@ class ClientBase:
         evaluate=True,
         verbose=False,
         use_valset=True,
-    ) -> Tuple[List[torch.Tensor], int]:
+    ) -> Tuple[List[torch.Tensor], int, OrderedDict[str, torch.Tensor]]:
         self.client_id = client_id
         self.set_parameters(model_params)
         self.get_client_local_dataset()
+        parms_before_training = deepcopy(self.model.state_dict())
         res, stats = self._log_while_training(evaluate, verbose, use_valset)()
-        return res, stats
+        params_after_training = self.model.state_dict()
+        psudo_grad = OrderedDict()
+        for key in parms_before_training.keys():
+            psudo_grad[key] = params_after_training[key] - parms_before_training[key]
+        return res, stats, psudo_grad
 
     def _train(self):
         self.model.train()

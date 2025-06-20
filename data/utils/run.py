@@ -198,7 +198,7 @@ if __name__ == "__main__":
         default=-1,
         help="Num of classes that one client's data belong to.",
     )
-    parser.add_argument("--seed", type=int, default=int(time.time()))
+    parser.add_argument("--seed", type=int, default=42)
     ################# Dirichlet distribution only #################
     parser.add_argument(
         "--alpha",
