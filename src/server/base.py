@@ -108,13 +108,13 @@ class ServerBase:
             res_cache = []
             for client_id in selected_clients:
                 client_local_params = clone_parameters(self.global_params_dict)
-                res, stats = self.trainer.train(
+                res, stats, psudo_grad = self.trainer.train(
                     client_id=client_id,
                     model_params=client_local_params,
                     verbose=(E % self.args.verbose_gap) == 0,
                 )
 
-                res_cache.append(res)
+                res_cache.append((psudo_grad, res[1]))
                 self.num_correct[E].append(stats["correct"])
                 self.num_samples[E].append(stats["size"])
             self.aggregate(res_cache)
@@ -129,21 +129,16 @@ class ServerBase:
 
     @torch.no_grad()
     def aggregate(self, res_cache):
-        updated_params_cache = list(zip(*res_cache))[0]
-        weights_cache = list(zip(*res_cache))[1]
+        psudo_grads, weights_cache = list(zip(*res_cache))
         weight_sum = sum(weights_cache)
         weights = torch.tensor(weights_cache, device=self.device) / weight_sum
 
-        aggregated_params = []
-
-        for params in zip(*updated_params_cache):
-            aggregated_params.append(
-                torch.sum(weights * torch.stack(params, dim=-1), dim=-1)
+        for key in self.global_params_dict.keys():
+            aggregated_psudo_grad_for_key = torch.sum(
+                torch.stack([grad[key] for grad in psudo_grads], dim=-1) * weights,
+                dim=-1,
             )
-
-        self.global_params_dict = OrderedDict(
-            zip(self.global_params_dict.keys(), aggregated_params)
-        )
+            self.global_params_dict[key] += aggregated_psudo_grad_for_key
 
     def test(self) -> None:
         self.logger.log("=" * 30, "TESTING", "=" * 30, style="bold blue")
