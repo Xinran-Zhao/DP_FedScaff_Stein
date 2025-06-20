@@ -15,6 +15,7 @@ import sys
 sys.path.append(_CURRENT_DIR.parent)
 
 from data.utils.util import get_dataset, set_seed
+from src.config.util import add_dp_noise, add_dp_noise_only
 
 
 class ClientBase:
@@ -27,6 +28,8 @@ class ClientBase:
         local_lr: float,
         logger: Console,
         gpu: int,
+        dp_sigma: float,
+        clip_bound: float,
     ):
         self.device = torch.device(
             "cuda" if gpu and torch.cuda.is_available() else "cpu"
@@ -44,6 +47,8 @@ class ClientBase:
         self.batch_size = batch_size
         self.local_epochs = local_epochs
         self.local_lr = local_lr
+        self.dp_sigma = dp_sigma
+        self.clip_bound = clip_bound
         self.criterion = torch.nn.CrossEntropyLoss()
         self.logger = logger
         self.untrainable_params: Dict[str, Dict[str, torch.Tensor]] = {}
@@ -67,6 +72,7 @@ class ClientBase:
         self,
         client_id: int,
         model_params: OrderedDict[str, torch.Tensor],
+        epoch: int,
         evaluate=True,
         verbose=False,
         use_valset=True,
@@ -77,13 +83,23 @@ class ClientBase:
         parms_before_training = deepcopy(self.model.state_dict())
         res, stats = self._log_while_training(evaluate, verbose, use_valset)()
         params_after_training = self.model.state_dict()
-        psudo_grad = OrderedDict()
+        pseudo_grad = OrderedDict()
         for key in parms_before_training.keys():
-            psudo_grad[key] = params_after_training[key] - parms_before_training[key]
-        return res, stats, psudo_grad
+            # TODO: before_traing can be change to global model params
+            pseudo_grad[key] = params_after_training[key] - parms_before_training[key]
+
+        if self.dp_sigma > 0:
+            seed = epoch * 1000 + self.client_id
+            # Apply DP noise with consistent clipping bound
+            pseudo_grad = add_dp_noise_only(pseudo_grad, self.dp_sigma, seed)
+        return res, stats, pseudo_grad
 
     def _train(self):
         self.model.train()
+        
+        # Store initial parameters at the start of training
+        initial_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
+        
         for _ in range(self.local_epochs):
             x, y = self.get_data_batch()
             logits = self.model(x)
@@ -91,6 +107,27 @@ class ClientBase:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+            
+            # Only apply clipping when differential privacy is needed
+            if self.dp_sigma > 0:
+                # Calculate delta and apply clipping
+                current_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
+                delta = current_params - initial_params
+                total_norm = torch.norm(delta)
+                
+                if total_norm > self.clip_bound:
+                    scale = self.clip_bound / total_norm
+                    delta = delta * scale
+                    current_params = initial_params + delta
+                    
+                    # Update model parameters
+                    start_idx = 0
+                    with torch.no_grad():
+                        for param in self.model.parameters():
+                            num_params = param.numel()
+                            param.copy_(current_params[start_idx:start_idx + num_params].view(param.shape))
+                            start_idx += num_params
+        
         return (
             list(self.model.state_dict(keep_vars=True).values()),
             len(self.trainset.dataset),

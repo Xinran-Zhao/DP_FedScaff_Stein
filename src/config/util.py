@@ -44,10 +44,10 @@ def clone_parameters(
 
 def get_args() -> Namespace:
     parser = ArgumentParser()
-    parser.add_argument("--global_epochs", type=int, default=100)
-    parser.add_argument("--local_epochs", type=int, default=10)
+    parser.add_argument("--global_epochs", type=int, default=30)
+    parser.add_argument("--local_epochs", type=int, default=1)
     parser.add_argument("--local_lr", type=float, default=1e-2)
-    parser.add_argument("--verbose_gap", type=int, default=20)
+    parser.add_argument("--verbose_gap", type=int, default=5)
     parser.add_argument(
         "--dataset",
         type=str,
@@ -58,6 +58,65 @@ def get_args() -> Namespace:
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--log", type=int, default=0)
     parser.add_argument("--seed", type=int, default=17)
-    parser.add_argument("--client_num_per_round", type=int, default=2)
-    parser.add_argument("--save_period", type=int, default=20)
+    parser.add_argument("--client_num_per_round", type=int, default=5)
+    parser.add_argument("--save_period", type=int, default=5)
+    parser.add_argument(
+        "--dp_sigma",
+        type=float,
+        default=0.1,
+        help="std of Gaussian noise for DP",
+    )
+    parser.add_argument(
+        "--clip_bound",
+        type=float,
+        default=100.0,
+        help="clipping bound for gradient",
+    )
     return parser.parse_args()
+
+
+def add_dp_noise(
+    pseudo_gradient: OrderedDict[str, torch.Tensor], sigma: float, seed: int, clip_norm: float
+) -> OrderedDict[str, torch.Tensor]:
+    torch.manual_seed(seed)
+    noisy_pseudo_gradient = OrderedDict()
+    
+    # First, compute the total norm of all gradients
+    total_norm = 0.0
+    for name, param in pseudo_gradient.items():
+        total_norm += param.norm().item() ** 2
+    total_norm = total_norm ** 0.5
+    
+    # Compute clipping coefficient
+    clip_coef = min(1.0, clip_norm / (total_norm + 1e-6))
+    
+    for name, param in pseudo_gradient.items():
+        # Clip the gradient
+        # print('param', param)
+        clipped_param = param * clip_coef
+        # Ensure noise is on the same device as the parameter
+        noise = torch.randn_like(clipped_param, device=clipped_param.device) * sigma
+        # print('clipped_param', clipped_param)
+        # print('randn_like', torch.randn_like(clipped_param, device=clipped_param.device) )
+        noisy_pseudo_gradient[name] = clipped_param + noise
+        # print('sigma', sigma,'noise', noise)
+        # print('noisy_pseudo_gradient[name]', noisy_pseudo_gradient[name])
+    return noisy_pseudo_gradient
+
+
+def add_dp_noise_only(
+    pseudo_gradient: OrderedDict[str, torch.Tensor], sigma: float, seed: int
+) -> OrderedDict[str, torch.Tensor]:
+    """
+    Add differential privacy noise to pseudo_gradient without clipping.
+    Clipping should be done during local training.
+    """
+    torch.manual_seed(seed)
+    noisy_pseudo_gradient = OrderedDict()
+    
+    for name, param in pseudo_gradient.items():
+        # Add Gaussian noise only (no clipping)
+        noise = torch.randn_like(param, device=param.device) * sigma
+        noisy_pseudo_gradient[name] = param + noise
+    
+    return noisy_pseudo_gradient

@@ -105,19 +105,21 @@ class ServerBase:
             selected_clients = random.sample(
                 self.client_id_indices, self.args.client_num_per_round
             )
+            pseudo_grad_cache = []
             res_cache = []
             for client_id in selected_clients:
                 client_local_params = clone_parameters(self.global_params_dict)
-                res, stats, psudo_grad = self.trainer.train(
+                res, stats, pseudo_grad = self.trainer.train(
                     client_id=client_id,
                     model_params=client_local_params,
+                    epoch=E,
                     verbose=(E % self.args.verbose_gap) == 0,
                 )
-
-                res_cache.append((psudo_grad, res[1]))
+                res_cache.append(res)
+                pseudo_grad_cache.append((pseudo_grad, res[1]))
                 self.num_correct[E].append(stats["correct"])
                 self.num_samples[E].append(stats["size"])
-            self.aggregate(res_cache)
+            self.aggregate(pseudo_grad_cache, res_cache)
 
             if E % self.args.save_period == 0:
                 torch.save(
@@ -128,17 +130,34 @@ class ServerBase:
                     pickle.dump(E, f)
 
     @torch.no_grad()
-    def aggregate(self, res_cache):
-        psudo_grads, weights_cache = list(zip(*res_cache))
+    def aggregate(self, pseudo_grad_cache,res_cache):
+        pseudo_grads, weights_cache = list(zip(*pseudo_grad_cache))
         weight_sum = sum(weights_cache)
         weights = torch.tensor(weights_cache, device=self.device) / weight_sum
 
         for key in self.global_params_dict.keys():
-            aggregated_psudo_grad_for_key = torch.sum(
-                torch.stack([grad[key] for grad in psudo_grads], dim=-1) * weights,
+            aggregated_pseudo_grad_for_key = torch.sum(
+                torch.stack([grad[key] for grad in pseudo_grads], dim=-1) * weights,
                 dim=-1,
             )
-            self.global_params_dict[key] += aggregated_psudo_grad_for_key
+            self.global_params_dict[key] += aggregated_pseudo_grad_for_key
+        
+        # # to delete
+        # updated_params_cache = list(zip(*res_cache))[0]
+        # weights_cache = list(zip(*res_cache))[1]
+        # weight_sum = sum(weights_cache)
+        # weights = torch.tensor(weights_cache, device=self.device) / weight_sum
+
+        # aggregated_params = []
+
+        # for params in zip(*updated_params_cache):
+        #     aggregated_params.append(
+        #         torch.sum(weights * torch.stack(params, dim=-1), dim=-1)
+        #     )
+
+        # self.global_params_dict = OrderedDict(
+        #     zip(self.global_params_dict.keys(), aggregated_params)
+        # )
 
     def test(self) -> None:
         self.logger.log("=" * 30, "TESTING", "=" * 30, style="bold blue")

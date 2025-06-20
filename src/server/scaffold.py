@@ -22,6 +22,8 @@ class SCAFFOLDServer(ServerBase):
             local_lr=self.args.local_lr,
             logger=self.logger,
             gpu=self.args.gpu,
+            dp_sigma=self.args.dp_sigma,
+            clip_bound=self.args.clip_bound,
         )
         self.c_global = [
             torch.zeros_like(param).to(self.device)
@@ -56,6 +58,7 @@ class SCAFFOLDServer(ServerBase):
                     client_id=client_id,
                     model_params=client_local_params,
                     c_global=self.c_global,
+                    epoch=E,
                     verbose=(E % self.args.verbose_gap) == 0,
                 )
                 res_cache.append(res)

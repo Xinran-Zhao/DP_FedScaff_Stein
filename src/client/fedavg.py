@@ -14,6 +14,8 @@ class FedAvgClient(ClientBase):
         local_lr: float,
         logger: Console,
         gpu: int,
+        dp_sigma: float,
+        clip_bound: float,
     ):
         super(FedAvgClient, self).__init__(
             backbone,
@@ -23,4 +25,6 @@ class FedAvgClient(ClientBase):
             local_lr,
             logger,
             gpu,
+            dp_sigma,
+            clip_bound,
         )

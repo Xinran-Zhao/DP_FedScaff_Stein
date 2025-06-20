@@ -14,6 +14,8 @@ class FedAvgServer(ServerBase):
             local_lr=self.args.local_lr,
             logger=self.logger,
             gpu=self.args.gpu,
+            dp_sigma=self.args.dp_sigma,
+            clip_bound=self.args.clip_bound,
         )
 
 

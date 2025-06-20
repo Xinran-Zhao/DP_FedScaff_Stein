@@ -185,7 +185,7 @@ if __name__ == "__main__":
         default="mnist",
     )
 
-    parser.add_argument("--client_num_in_total", type=int, default=10)
+    parser.add_argument("--client_num_in_total", type=int, default=5)
     parser.add_argument(
         "--fraction", type=float, default=0.9, help="Propotion of train clients"
     )
