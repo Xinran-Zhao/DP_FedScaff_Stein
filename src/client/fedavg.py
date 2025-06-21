@@ -16,6 +16,7 @@ class FedAvgClient(ClientBase):
         gpu: int,
         dp_sigma: float,
         clip_bound: float,
+        jse: bool,
     ):
         super(FedAvgClient, self).__init__(
             backbone,
@@ -27,4 +28,5 @@ class FedAvgClient(ClientBase):
             gpu,
             dp_sigma,
             clip_bound,
+            jse,
         )

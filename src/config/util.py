@@ -72,6 +72,12 @@ def get_args() -> Namespace:
         default=100.0,
         help="clipping bound for gradient",
     )
+    parser.add_argument(
+        "--jse",
+        type=bool,
+        default=False,
+        help="apply james-stein estimator",
+    )
     return parser.parse_args()
 
 
@@ -118,5 +124,31 @@ def add_dp_noise_only(
         # Add Gaussian noise only (no clipping)
         noise = torch.randn_like(param, device=param.device) * sigma
         noisy_pseudo_gradient[name] = param + noise
+
+        # snr = param.norm() / noise.norm()
+        # avg_noise = noise.abs().mean().item()
+        # avg_param = param.abs().mean().item()
+        # ratio = avg_noise / (avg_param + 1e-8)
+
+        # print(f"{name}: SNR={snr:.2f}, noise/param ratio={ratio:.2f}")
     
     return noisy_pseudo_gradient
+
+def apply_jse(noisy_term, sigma, d):
+    """
+    Apply James-Stein estimator to noisy gradients for local DP.
+    Args:
+        sigma: std of Gaussian noise for DP, args.dp_sigma
+        d: sum(p.numel() for p in global_model.parameters())
+        noisy_term: Parameter gradient tensor
+    Returns:
+        Shrunk gradient tensor
+    """
+    numerator = (d - 2) * (sigma ** 2)
+    print("d", d)
+    denominator = noisy_term.pow(2).sum().item()
+    print('>>> denominator', denominator)
+    shrinkage_factor = 1.0 - numerator / denominator
+    print('>>> shrinkage_factor', shrinkage_factor)
+    shrinkage_factor = max(shrinkage_factor, 0.0001)
+    return noisy_term * shrinkage_factor

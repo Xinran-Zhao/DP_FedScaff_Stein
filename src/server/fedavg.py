@@ -16,6 +16,7 @@ class FedAvgServer(ServerBase):
             gpu=self.args.gpu,
             dp_sigma=self.args.dp_sigma,
             clip_bound=self.args.clip_bound,
+            jse=self.args.jse,
         )
 
 

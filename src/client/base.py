@@ -15,7 +15,7 @@ import sys
 sys.path.append(_CURRENT_DIR.parent)
 
 from data.utils.util import get_dataset, set_seed
-from src.config.util import add_dp_noise, add_dp_noise_only
+from src.config.util import add_dp_noise, add_dp_noise_only, apply_jse
 
 
 class ClientBase:
@@ -30,6 +30,7 @@ class ClientBase:
         gpu: int,
         dp_sigma: float,
         clip_bound: float,
+        jse: bool,
     ):
         self.device = torch.device(
             "cuda" if gpu and torch.cuda.is_available() else "cpu"
@@ -52,7 +53,8 @@ class ClientBase:
         self.criterion = torch.nn.CrossEntropyLoss()
         self.logger = logger
         self.untrainable_params: Dict[str, Dict[str, torch.Tensor]] = {}
-
+        self.jse = jse
+        
     @torch.no_grad()
     def evaluate(self, use_valset=True):
         self.model.eval()
@@ -85,13 +87,18 @@ class ClientBase:
         params_after_training = self.model.state_dict()
         pseudo_grad = OrderedDict()
         for key in parms_before_training.keys():
-            # TODO: before_traing can be change to global model params
             pseudo_grad[key] = params_after_training[key] - parms_before_training[key]
 
         if self.dp_sigma > 0:
             seed = epoch * 1000 + self.client_id
-            # Apply DP noise with consistent clipping bound
             pseudo_grad = add_dp_noise_only(pseudo_grad, self.dp_sigma, seed)
+            
+            # Apply James-Stein estimator if enabled
+            if self.jse:
+                # Apply James-Stein estimator to each parameter using per-layer dimensionality
+                for name, param in pseudo_grad.items():
+                    d = param.numel()  # Use dimensionality of this specific parameter tensor
+                    pseudo_grad[name] = apply_jse(param, self.dp_sigma, d)
         return res, stats, pseudo_grad
 
     def _train(self):
@@ -114,9 +121,10 @@ class ClientBase:
                 current_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
                 delta = current_params - initial_params
                 total_norm = torch.norm(delta)
-                
+                # print('total_norm', total_norm, 'self.clip_bound', self.clip_bound)
                 if total_norm > self.clip_bound:
                     scale = self.clip_bound / total_norm
+                    # print('scale', scale)
                     delta = delta * scale
                     current_params = initial_params + delta
                     
