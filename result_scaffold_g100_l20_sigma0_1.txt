@@ -1,0 +1,328 @@
+(scaffold) xzhao181@en4228312l:~/DP_FedScaff_Stein$ python ./src/server/scaffold.py --dataset mnist --clip_bound=100 --global_epochs=100 --local_epochs=20 --dp_sigma=0.1 --j
+se=True
+Backbone: LeNet5(                                                                                                                                                            
+  (net): Sequential(                                                                                                                                                         
+    (0): Conv2d(1, 6, kernel_size=(5, 5), stride=(1, 1))                                                                                                                     
+    (1): ReLU(inplace=True)                                                                                                                                                  
+    (2): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)                                                                                          
+    (3): Conv2d(6, 16, kernel_size=(5, 5), stride=(1, 1))                                                                                                                    
+    (4): ReLU(inplace=True)                                                                                                                                                  
+    (5): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)                                                                                          
+    (6): Flatten(start_dim=1, end_dim=-1)                                                                                                                                    
+    (7): Linear(in_features=256, out_features=120, bias=True)                                                                                                                
+    (8): ReLU(inplace=True)                                                                                                                                                  
+    (9): Linear(in_features=120, out_features=84, bias=True)                                                                                                                 
+    (10): ReLU(inplace=True)                                                                                                                                                 
+    (11): Linear(in_features=84, out_features=10, bias=True)                                                                                                                 
+  )                                                                                                                                                                          
+)                                                                                                                                                                            
+Arguments:                                                                                                                                                                   
+{                                                                                                                                                                            
+    'global_epochs': 100,                                                                                                                                                    
+    'local_epochs': 20,                                                                                                                                                      
+    'local_lr': 0.01,                                                                                                                                                        
+    'verbose_gap': 5,                                                                                                                                                        
+    'dataset': 'mnist',                                                                                                                                                      
+    'batch_size': -1,                                                                                                                                                        
+    'gpu': 1,                                                                                                                                                                
+    'log': 0,                                                                                                                                                                
+    'seed': 17,                                                                                                                                                              
+    'client_num_per_round': 5,                                                                                                                                               
+    'save_period': 5,                                                                                                                                                        
+    'dp_sigma': 0.1,                                                                                                                                                         
+    'clip_bound': 100.0,                                                                                                                                                     
+    'jse': True                                                                                                                                                              
+}                                                                                                                                                                            
+============================== TRAINING ==============================                                                                                                       
+============================== ROUND: 0 ==============================                                                                                                       
+client [3]   loss: 10.9515 -> 1.3190    accuracy: 0.00% -> 42.81%                                                                                                            
+client [4]   loss: 3.3307 -> 0.5750    accuracy: 26.63% -> 87.97%                                                                                                            
+client [0]   loss: 1.8386 -> 0.2003    accuracy: 46.55% -> 94.12%                                                                                                            
+client [1]   loss: 6.7608 -> 0.3468    accuracy: 16.33% -> 87.82%                                                                                                            
+client [2]   loss: 10.9939 -> 0.4377    accuracy: 1.06% -> 89.89%                                                                                                            
+============================== ROUND: 5 ==============================                                                                                                       
+client [4]   loss: 2.0653 -> 0.2541    accuracy: 16.66% -> 92.29%                                                                                                            
+client [0]   loss: 2.0218 -> 0.2559    accuracy: 19.18% -> 91.56%                                                                                                            
+client [1]   loss: 2.3640 -> 0.3052    accuracy: 7.70% -> 91.77%                                                                                                             
+client [2]   loss: 2.9110 -> 0.1241    accuracy: 0.59% -> 95.84%                                                                                                             
+client [3]   loss: 2.7047 -> 0.1290    accuracy: 0.37% -> 95.58%                                                                                                             
+============================== ROUND: 10 ==============================                                                                                                      
+client [4]   loss: 2.0349 -> 0.2573    accuracy: 15.53% -> 91.11%                                                                                                            
+client [1]   loss: 2.3291 -> 0.3192    accuracy: 9.61% -> 90.52%                                                                                                             
+client [0]   loss: 1.8981 -> 0.1715    accuracy: 23.53% -> 94.63%                                                                                                            
+client [2]   loss: 2.9919 -> 0.1587    accuracy: 0.59% -> 94.45%                                                                                                             
+client [3]   loss: 2.7996 -> 0.2286    accuracy: 0.80% -> 92.44%                                                                                                             
+============================== ROUND: 15 ==============================                                                                                                      
+client [1]   loss: 2.3986 -> 0.2486    accuracy: 12.24% -> 91.71%                                                                                                            
+client [4]   loss: 1.9779 -> 0.1791    accuracy: 17.79% -> 94.60%                                                                                                            
+client [0]   loss: 1.8207 -> 0.1677    accuracy: 30.18% -> 94.63%                                                                                                            
+client [2]   loss: 2.8954 -> 0.1630    accuracy: 0.92% -> 95.38%                                                                                                             
+client [3]   loss: 2.9154 -> 0.1707    accuracy: 0.74% -> 94.35%                                                                                                             
+============================== ROUND: 20 ==============================                                                                                                      
+client [2]   loss: 2.9025 -> 0.1858    accuracy: 1.25% -> 94.39%                                                                                                             
+client [0]   loss: 1.6699 -> 0.1255    accuracy: 43.48% -> 95.91%                                                                                                            
+client [1]   loss: 2.3733 -> 0.3183    accuracy: 16.19% -> 89.27%                                                                                                            
+client [4]   loss: 2.0065 -> 0.1741    accuracy: 17.74% -> 94.50%                                                                                                            
+client [3]   loss: 2.7519 -> 0.2067    accuracy: 2.27% -> 92.01%                                                                                                             
+============================== ROUND: 25 ==============================                                                                                                      
+client [4]   loss: 1.9636 -> 0.1624    accuracy: 22.16% -> 95.37%                                                                                                            
+client [0]   loss: 1.6801 -> 0.1207    accuracy: 46.04% -> 96.42%                                                                                                            
+client [1]   loss: 2.3309 -> 0.2748    accuracy: 17.84% -> 89.53%                                                                                                            
+client [3]   loss: 2.7255 -> 0.1275    accuracy: 2.64% -> 96.01%                                                                                                             
+client [2]   loss: 2.8389 -> 0.1855    accuracy: 1.85% -> 94.32%                                                                                                             
+============================== ROUND: 30 ==============================                                                                                                      
+client [3]   loss: 2.7755 -> 0.1490    accuracy: 4.55% -> 95.09%                                                                                                             
+client [1]   loss: 2.3396 -> 0.2264    accuracy: 16.85% -> 92.63%                                                                                                            
+client [0]   loss: 1.7176 -> 0.1205    accuracy: 46.04% -> 96.93%                                                                                                            
+client [4]   loss: 1.9408 -> 0.1393    accuracy: 30.23% -> 96.35%                                                                                                            
+client [2]   loss: 2.8572 -> 0.2476    accuracy: 1.72% -> 92.01%                                                                                                             
+============================== ROUND: 35 ==============================                                                                                                      
+client [0]   loss: 1.7287 -> 0.1241    accuracy: 45.78% -> 95.91%                                                                                                            
+client [3]   loss: 2.5617 -> 0.1056    accuracy: 10.63% -> 97.17%                                                                                                            
+client [2]   loss: 2.7145 -> 0.2903    accuracy: 2.77% -> 89.63%                                                                                                             
+client [1]   loss: 2.2806 -> 0.6035    accuracy: 18.17% -> 81.30%                                                                                                            
+client [4]   loss: 1.9986 -> 0.1288    accuracy: 31.11% -> 96.20%                                                                                                            
+============================== ROUND: 40 ==============================                                                                                                      
+client [2]   loss: 2.6453 -> 0.1562    accuracy: 3.83% -> 94.52%                                                                                                             
+client [3]   loss: 2.8455 -> 0.1020    accuracy: 4.55% -> 96.87%                                                                                                             
+client [4]   loss: 1.9037 -> 0.1441    accuracy: 34.40% -> 95.99%                                                                                                            
+client [1]   loss: 2.3353 -> 0.1989    accuracy: 15.67% -> 93.15%                                                                                                            
+client [0]   loss: 1.6798 -> 0.1304    accuracy: 42.97% -> 96.42%                                                                                                            
+============================== ROUND: 45 ==============================                                                                                                      
+client [1]   loss: 2.1667 -> 0.2327    accuracy: 24.16% -> 91.97%                                                                                                            
+client [3]   loss: 2.7577 -> 0.1049    accuracy: 6.63% -> 96.74%                                                                                                             
+client [2]   loss: 2.6031 -> 0.1789    accuracy: 5.02% -> 94.45%                                                                                                             
+client [4]   loss: 1.9236 -> 0.1497    accuracy: 31.11% -> 96.14%                                                                                                            
+client [0]   loss: 1.4557 -> 0.1447    accuracy: 57.29% -> 96.42%                                                                                                            
+============================== ROUND: 50 ==============================                                                                                                      
+client [1]   loss: 2.0984 -> 0.1802    accuracy: 24.36% -> 94.34%                                                                                                            
+client [0]   loss: 1.4237 -> 0.1587    accuracy: 58.31% -> 95.65%                                                                                                            
+client [2]   loss: 2.3782 -> 0.1569    accuracy: 10.30% -> 95.05%                                                                                                            
+client [3]   loss: 2.5540 -> 0.1084    accuracy: 9.52% -> 96.50%                                                                                                             
+client [4]   loss: 1.8853 -> 0.1944    accuracy: 34.45% -> 95.94%                                                                                                            
+============================== ROUND: 55 ==============================                                                                                                      
+client [1]   loss: 2.0488 -> 0.2406    accuracy: 30.48% -> 91.44%                                                                                                            
+client [2]   loss: 2.1655 -> 0.1479    accuracy: 17.90% -> 95.18%                                                                                                            
+client [3]   loss: 2.2581 -> 0.1111    accuracy: 16.52% -> 96.68%                                                                                                            
+client [4]   loss: 1.9939 -> 0.1460    accuracy: 27.25% -> 95.99%                                                                                                            
+client [0]   loss: 1.3724 -> 0.1611    accuracy: 59.34% -> 94.63%                                                                                                            
+============================== ROUND: 60 ==============================                                                                                                      
+client [2]   loss: 2.1972 -> 0.1915    accuracy: 16.25% -> 94.39%                                                                                                            
+client [0]   loss: 1.3163 -> 0.1404    accuracy: 59.59% -> 96.42%                                                                                                            
+client [3]   loss: 2.2647 -> 0.1282    accuracy: 15.97% -> 95.88%                                                                                                            
+client [1]   loss: 1.9571 -> 0.2451    accuracy: 32.72% -> 90.98%                                                                                                            
+client [4]   loss: 1.9113 -> 0.1582    accuracy: 27.76% -> 96.61%                                                                                                            
+============================== ROUND: 65 ==============================                                                                                                      
+client [0]   loss: 1.2099 -> 0.1220    accuracy: 65.73% -> 96.42%                                                                                                            
+client [3]   loss: 2.3606 -> 0.1274    accuracy: 14.00% -> 95.82%                                                                                                            
+client [1]   loss: 1.8654 -> 0.2001    accuracy: 35.48% -> 93.42%                                                                                                            
+client [2]   loss: 2.0757 -> 0.1883    accuracy: 22.13% -> 94.78%                                                                                                            
+client [4]   loss: 1.9145 -> 0.1254    accuracy: 30.08% -> 96.66%                                                                                                            
+============================== ROUND: 70 ==============================                                                                                                      
+client [3]   loss: 2.1945 -> 0.1332    accuracy: 15.60% -> 96.31%                                                                                                            
+client [0]   loss: 1.1865 -> 0.1200    accuracy: 66.24% -> 96.68%                                                                                                            
+client [4]   loss: 1.7843 -> 4.5232    accuracy: 37.69% -> 60.46%                                                                                                            
+client [1]   loss: 1.8513 -> 0.2822    accuracy: 36.80% -> 91.90%                                                                                                            
+client [2]   loss: 2.0951 -> 0.1773    accuracy: 22.46% -> 94.32%                                                                                                            
+============================== ROUND: 75 ==============================                                                                                                      
+client [3]   loss: 2.1035 -> 0.1435    accuracy: 18.98% -> 95.82%                                                                                                            
+client [4]   loss: 1.7319 -> 0.6943    accuracy: 39.13% -> 80.31%                                                                                                            
+client [1]   loss: 1.8522 -> 0.2022    accuracy: 37.66% -> 93.22%                                                                                                            
+client [0]   loss: 1.0807 -> 0.1494    accuracy: 71.61% -> 96.16%                                                                                                            
+client [2]   loss: 1.9758 -> 0.1667    accuracy: 28.07% -> 95.11%                                                                                                            
+============================== ROUND: 80 ==============================                                                                                                      
+client [3]   loss: 2.1366 -> 0.1386    accuracy: 16.15% -> 95.95%                                                                                                            
+client [1]   loss: 1.7748 -> 0.1958    accuracy: 38.45% -> 93.61%                                                                                                            
+client [2]   loss: 1.9833 -> 0.1700    accuracy: 31.31% -> 94.72%                                                                                                            
+client [0]   loss: 1.0576 -> 0.1834    accuracy: 73.15% -> 95.91%                                                                                                            
+client [4]   loss: 1.6344 -> 0.1541    accuracy: 43.14% -> 94.91%                                                                                                            
+============================== ROUND: 85 ==============================                                                                                                      
+client [3]   loss: 2.1418 -> 0.1426    accuracy: 15.66% -> 96.25%                                                                                                            
+client [2]   loss: 2.1031 -> 0.1955    accuracy: 24.44% -> 93.46%                                                                                                            
+client [0]   loss: 1.0298 -> 0.1731    accuracy: 75.70% -> 95.65%                                                                                                            
+client [4]   loss: 1.5051 -> 2.1869    accuracy: 50.08% -> 59.90%                                                                                                            
+client [1]   loss: 1.7485 -> 0.1888    accuracy: 39.04% -> 94.47%                                                                                                            
+============================== ROUND: 90 ==============================                                                                                                      
+client [4]   loss: 1.5246 -> 0.1405    accuracy: 50.23% -> 95.68%                                                                                                            
+client [2]   loss: 2.0871 -> 0.2092    accuracy: 26.68% -> 93.00%                                                                                                            
+client [1]   loss: 1.6225 -> 0.1815    accuracy: 42.53% -> 94.21%                                                                                                            
+client [0]   loss: 0.9313 -> 0.1170    accuracy: 78.77% -> 96.68%                                                                                                            
+client [3]   loss: 2.2991 -> 0.1324    accuracy: 12.04% -> 96.25%                                                                                                            
+============================== ROUND: 95 ==============================                                                                                                      
+client [2]   loss: 2.0397 -> 0.1631    accuracy: 29.33% -> 95.38%                                                                                                            
+client [3]   loss: 2.3313 -> 0.1491    accuracy: 11.36% -> 95.58%                                                                                                            
+client [0]   loss: 0.8574 -> 0.1006    accuracy: 81.59% -> 96.42%                                                                                                            
+client [1]   loss: 1.5294 -> 0.2259    accuracy: 46.87% -> 93.42%                                                                                                            
+client [4]   loss: 1.5026 -> 0.1277    accuracy: 51.05% -> 96.71%                                                                                                            
+Training... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:02:54
+============================== TESTING ==============================                                                                                                        
+Testing... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:01
+==================== RESULTS ====================                                                                                                                            
+loss: 1.7397    accuracy: 39.63%                                                                                                                                             
+SCAFFOLD achieved 10.0% accuracy(13.78%) at epoch: 0                                                                                                                         
+SCAFFOLD achieved 20.0% accuracy(20.05%) at epoch: 46                                                                                                                        
+SCAFFOLD achieved 30.0% accuracy(30.44%) at epoch: 69                                                                                                                        
+(scaffold) xzhao181@en4228312l:~/DP_FedScaff_Stein$ python ./src/server/scaffold.py --dataset mnist --clip_bound=100 --global_epochs=100 --local_epochs=20 --dp_sigma=0.1
+Backbone: LeNet5(                                                                                                                                                            
+  (net): Sequential(                                                                                                                                                         
+    (0): Conv2d(1, 6, kernel_size=(5, 5), stride=(1, 1))                                                                                                                     
+    (1): ReLU(inplace=True)                                                                                                                                                  
+    (2): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)                                                                                          
+    (3): Conv2d(6, 16, kernel_size=(5, 5), stride=(1, 1))                                                                                                                    
+    (4): ReLU(inplace=True)                                                                                                                                                  
+    (5): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)                                                                                          
+    (6): Flatten(start_dim=1, end_dim=-1)                                                                                                                                    
+    (7): Linear(in_features=256, out_features=120, bias=True)                                                                                                                
+    (8): ReLU(inplace=True)                                                                                                                                                  
+    (9): Linear(in_features=120, out_features=84, bias=True)                                                                                                                 
+    (10): ReLU(inplace=True)                                                                                                                                                 
+    (11): Linear(in_features=84, out_features=10, bias=True)                                                                                                                 
+  )                                                                                                                                                                          
+)                                                                                                                                                                            
+Arguments:                                                                                                                                                                   
+{                                                                                                                                                                            
+    'global_epochs': 100,                                                                                                                                                    
+    'local_epochs': 20,                                                                                                                                                      
+    'local_lr': 0.01,                                                                                                                                                        
+    'verbose_gap': 5,                                                                                                                                                        
+    'dataset': 'mnist',                                                                                                                                                      
+    'batch_size': -1,                                                                                                                                                        
+    'gpu': 1,                                                                                                                                                                
+    'log': 0,                                                                                                                                                                
+    'seed': 17,                                                                                                                                                              
+    'client_num_per_round': 5,                                                                                                                                               
+    'save_period': 5,                                                                                                                                                        
+    'dp_sigma': 0.1,                                                                                                                                                         
+    'clip_bound': 100.0,                                                                                                                                                     
+    'jse': False                                                                                                                                                             
+}                                                                                                                                                                            
+============================== TRAINING ==============================                                                                                                       
+============================== ROUND: 0 ==============================                                                                                                       
+client [3]   loss: 10.9515 -> 1.3190    accuracy: 0.00% -> 42.81%                                                                                                            
+client [4]   loss: 3.3307 -> 0.5750    accuracy: 26.63% -> 87.97%                                                                                                            
+client [0]   loss: 1.8386 -> 0.1959    accuracy: 46.55% -> 94.12%                                                                                                            
+client [1]   loss: 6.7608 -> 0.3468    accuracy: 16.33% -> 87.82%                                                                                                            
+client [2]   loss: 10.9939 -> 0.4377    accuracy: 1.06% -> 89.89%                                                                                                            
+============================== ROUND: 5 ==============================                                                                                                       
+client [4]   loss: 2.5179 -> 0.8584    accuracy: 2.67% -> 73.88%                                                                                                             
+client [0]   loss: 2.1175 -> 0.9001    accuracy: 26.60% -> 71.87%                                                                                                            
+client [1]   loss: 2.0794 -> 1.0420    accuracy: 18.10% -> 73.86%                                                                                                            
+client [2]   loss: 2.2539 -> 0.4987    accuracy: 28.40% -> 88.90%                                                                                                            
+client [3]   loss: 2.6718 -> 1.1834    accuracy: 6.14% -> 65.42%                                                                                                             
+============================== ROUND: 10 ==============================                                                                                                      
+client [4]   loss: 2.4503 -> 0.9268    accuracy: 35.17% -> 76.66%                                                                                                            
+client [1]   loss: 3.5330 -> 1.5399    accuracy: 29.56% -> 55.37%                                                                                                            
+client [0]   loss: 1.3113 -> 1.1893    accuracy: 63.17% -> 64.96%                                                                                                            
+client [2]   loss: 2.0245 -> 0.9459    accuracy: 27.94% -> 80.71%                                                                                                            
+client [3]   loss: 5.5507 -> 0.9632    accuracy: 4.18% -> 78.56%                                                                                                             
+============================== ROUND: 15 ==============================                                                                                                      
+client [1]   loss: 3.8507 -> 1.1026    accuracy: 35.15% -> 73.60%                                                                                                            
+client [4]   loss: 3.1763 -> 1.0427    accuracy: 24.94% -> 74.81%                                                                                                            
+client [0]   loss: 1.2157 -> 2.6746    accuracy: 64.19% -> 74.94%                                                                                                            
+client [2]   loss: 4.0121 -> 0.7120    accuracy: 3.96% -> 82.36%                                                                                                             
+client [3]   loss: 3.1480 -> 4.6406    accuracy: 34.58% -> 46.25%                                                                                                            
+============================== ROUND: 20 ==============================                                                                                                      
+client [2]   loss: 3.3781 -> 1.9083    accuracy: 1.92% -> 37.52%                                                                                                             
+client [0]   loss: 2.7163 -> 1.7294    accuracy: 27.37% -> 67.52%                                                                                                            
+client [1]   loss: 2.2616 -> 962.3518    accuracy: 32.19% -> 29.30%                                                                                                          
+client [4]   loss: 3.1455 -> 3.0915    accuracy: 15.84% -> 13.11%                                                                                                            
+client [3]   loss: 3.6829 -> 2.0078    accuracy: 8.11% -> 34.77%                                                                                                             
+============================== ROUND: 25 ==============================                                                                                                      
+client [4]   loss: 2.6920 -> 3.1441    accuracy: 0.05% -> 0.00%                                                                                                              
+client [0]   loss: 2.6917 -> 3.8786    accuracy: 3.58% -> 30.95%                                                                                                             
+client [1]   loss: 2.4729 -> 12.8938    accuracy: 10.20% -> 43.98%                                                                                                           
+client [3]   loss: 2.2355 -> 2.2701    accuracy: 23.40% -> 17.87%                                                                                                            
+client [2]   loss: 2.6537 -> 2.7750    accuracy: 0.33% -> 0.99%                                                                                                              
+============================== ROUND: 30 ==============================                                                                                                      
+client [3]   loss: 3.0916 -> 3.1745    accuracy: 26.66% -> 36.55%                                                                                                            
+client [1]   loss: 2.6105 -> 650.3283    accuracy: 30.88% -> 12.64%                                                                                                          
+client [0]   loss: 2.8739 -> 2.5871    accuracy: 1.02% -> 36.32%                                                                                                             
+client [4]   loss: 3.0879 -> 2.9757    accuracy: 1.23% -> 5.86%                                                                                                              
+client [2]   loss: 2.9477 -> 3.0156    accuracy: 0.00% -> 0.07%                                                                                                              
+============================== ROUND: 35 ==============================                                                                                                      
+client [0]   loss: 2.2498 -> 2.4163    accuracy: 35.55% -> 7.42%                                                                                                             
+client [3]   loss: 2.2946 -> 2.5829    accuracy: 20.64% -> 36.61%                                                                                                            
+client [2]   loss: 2.6306 -> 2.5064    accuracy: 1.06% -> 1.32%                                                                                                              
+client [1]   loss: 2.4171 -> 3.5515    accuracy: 22.65% -> 34.96%                                                                                                            
+client [4]   loss: 2.5724 -> 2.6298    accuracy: 5.24% -> 1.65%                                                                                                              
+============================== ROUND: 40 ==============================                                                                                                      
+client [2]   loss: 2.8154 -> 2.6727    accuracy: 0.20% -> 0.20%                                                                                                              
+client [3]   loss: 2.3847 -> 2.3737    accuracy: 10.07% -> 11.73%                                                                                                            
+client [4]   loss: 2.3906 -> 2.3618    accuracy: 30.69% -> 11.83%                                                                                                            
+client [1]   loss: 2.3936 -> 2.4926    accuracy: 3.49% -> 3.69%                                                                                                              
+client [0]   loss: 2.0956 -> 2.2861    accuracy: 11.76% -> 58.82%                                                                                                            
+============================== ROUND: 45 ==============================                                                                                                      
+client [1]   loss: 3.1763 -> 2.3848    accuracy: 15.60% -> 20.67%                                                                                                            
+client [3]   loss: 2.2164 -> 2.2404    accuracy: 18.30% -> 22.11%                                                                                                            
+client [2]   loss: 2.9064 -> 2.8723    accuracy: 1.39% -> 1.32%                                                                                                              
+client [4]   loss: 2.6035 -> 2.5157    accuracy: 5.76% -> 7.87%                                                                                                              
+client [0]   loss: 2.1287 -> 2.6026    accuracy: 40.92% -> 18.93%                                                                                                            
+============================== ROUND: 50 ==============================                                                                                                      
+client [1]   loss: 2.3692 -> 2.8854    accuracy: 20.67% -> 32.72%                                                                                                            
+client [0]   loss: 2.0353 -> 1.6961    accuracy: 48.85% -> 59.34%                                                                                                            
+client [2]   loss: 2.6533 -> 2.4748    accuracy: 1.59% -> 7.99%                                                                                                              
+client [3]   loss: 2.3531 -> 2.4931    accuracy: 29.79% -> 27.15%                                                                                                            
+client [4]   loss: 2.6597 -> 2.9485    accuracy: 1.29% -> 0.51%                                                                                                              
+============================== ROUND: 55 ==============================                                                                                                      
+client [1]   loss: 2.5197 -> 2.8651    accuracy: 24.82% -> 22.51%                                                                                                            
+client [2]   loss: 2.5837 -> 2.4952    accuracy: 2.11% -> 18.36%                                                                                                             
+client [3]   loss: 2.5885 -> 2.6408    accuracy: 16.52% -> 22.97%                                                                                                            
+client [4]   loss: 2.4904 -> 2.7858    accuracy: 0.82% -> 0.87%                                                                                                              
+client [0]   loss: 1.8678 -> 1.9945    accuracy: 60.61% -> 61.64%                                                                                                            
+============================== ROUND: 60 ==============================                                                                                                      
+client [2]   loss: 2.7499 -> 2.8152    accuracy: 1.65% -> 4.16%                                                                                                              
+client [0]   loss: 1.9552 -> 1.8925    accuracy: 45.78% -> 53.20%                                                                                                            
+client [3]   loss: 2.5839 -> 2.6171    accuracy: 26.35% -> 26.97%                                                                                                            
+client [1]   loss: 2.3923 -> 2.1750    accuracy: 24.36% -> 37.72%                                                                                                            
+client [4]   loss: 2.3998 -> 2.5007    accuracy: 6.84% -> 34.91%                                                                                                             
+============================== ROUND: 65 ==============================                                                                                                      
+client [0]   loss: 2.1555 -> 2.1781    accuracy: 43.99% -> 51.92%                                                                                                            
+client [3]   loss: 2.7101 -> 3.0211    accuracy: 10.01% -> 30.59%                                                                                                            
+client [1]   loss: 2.2607 -> 2.2034    accuracy: 37.46% -> 38.84%                                                                                                            
+client [2]   loss: 2.2093 -> 1.9927    accuracy: 6.34% -> 79.92%                                                                                                             
+client [4]   loss: 2.6142 -> 2.6949    accuracy: 9.31% -> 12.29%                                                                                                             
+============================== ROUND: 70 ==============================                                                                                                      
+client [3]   loss: 3.0880 -> 3.4723    accuracy: 4.67% -> 7.92%                                                                                                              
+client [0]   loss: 2.2619 -> 2.2061    accuracy: 47.06% -> 50.38%                                                                                                            
+client [4]   loss: 2.6129 -> 3.2287    accuracy: 5.91% -> 0.62%                                                                                                              
+client [1]   loss: 2.3125 -> 2.8990    accuracy: 36.67% -> 27.78%                                                                                                            
+client [2]   loss: 2.0575 -> 1.9795    accuracy: 25.30% -> 22.79%                                                                                                            
+============================== ROUND: 75 ==============================                                                                                                      
+client [3]   loss: 2.8551 -> 2.8188    accuracy: 4.91% -> 8.54%                                                                                                              
+client [4]   loss: 2.8384 -> 2.5609    accuracy: 9.15% -> 23.34%                                                                                                             
+client [1]   loss: 2.4872 -> 4.5793    accuracy: 39.89% -> 31.40%                                                                                                            
+client [0]   loss: 2.1894 -> 2.1144    accuracy: 43.99% -> 12.79%                                                                                                            
+client [2]   loss: 2.3049 -> 1.9759    accuracy: 11.03% -> 72.06%                                                                                                            
+============================== ROUND: 80 ==============================                                                                                                      
+client [3]   loss: 2.4678 -> 2.3145    accuracy: 25.98% -> 30.10%                                                                                                            
+client [1]   loss: 2.4886 -> 2.6268    accuracy: 31.14% -> 32.85%                                                                                                            
+client [2]   loss: 2.3924 -> 2.7034    accuracy: 4.23% -> 0.86%                                                                                                              
+client [0]   loss: 2.1315 -> 1.8035    accuracy: 52.94% -> 61.38%                                                                                                            
+client [4]   loss: 2.5980 -> 3.0090    accuracy: 4.94% -> 3.80%                                                                                                              
+============================== ROUND: 85 ==============================                                                                                                      
+client [3]   loss: 2.4830 -> 3.1130    accuracy: 30.22% -> 34.28%                                                                                                            
+client [2]   loss: 2.3441 -> 1.7593    accuracy: 12.88% -> 75.36%                                                                                                            
+client [0]   loss: 1.7123 -> 1.9282    accuracy: 57.80% -> 55.50%                                                                                                            
+client [4]   loss: 2.8882 -> 2.3898    accuracy: 4.27% -> 28.95%                                                                                                             
+client [1]   loss: 2.4750 -> 2.6541    accuracy: 30.81% -> 33.84%                                                                                                            
+============================== ROUND: 90 ==============================                                                                                                      
+client [4]   loss: 2.6277 -> 3.0734    accuracy: 3.19% -> 6.02%                                                                                                              
+client [2]   loss: 2.1696 -> 2.4316    accuracy: 17.97% -> 5.42%                                                                                                             
+client [1]   loss: 2.5259 -> 2.4689    accuracy: 37.85% -> 37.79%                                                                                                            
+client [0]   loss: 1.9770 -> 1.8560    accuracy: 46.80% -> 20.97%                                                                                                            
+client [3]   loss: 2.3576 -> 2.5094    accuracy: 45.33% -> 49.02%                                                                                                            
+============================== ROUND: 95 ==============================                                                                                                      
+client [2]   loss: 1.6921 -> 1.6857    accuracy: 64.33% -> 25.96%                                                                                                            
+client [3]   loss: 2.2052 -> 2.3771    accuracy: 38.82% -> 35.44%                                                                                                            
+client [0]   loss: 2.2030 -> 2.6294    accuracy: 20.72% -> 25.58%                                                                                                            
+client [1]   loss: 2.0431 -> 2.3344    accuracy: 40.03% -> 42.46%                                                                                                            
+client [4]   loss: 2.6413 -> 2.8403    accuracy: 5.91% -> 3.19%                                                                                                              
+Training... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:02:54
+============================== TESTING ==============================                                                                                                        
+Testing... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:01
+==================== RESULTS ====================                                                                                                                            
+loss: 2.2702    accuracy: 26.65%                                                                                                                                             
+SCAFFOLD achieved 10.0% accuracy(13.78%) at epoch: 0                                                                                                                         
+SCAFFOLD achieved 20.0% accuracy(20.65%) at epoch: 7                                                                                                                         
+SCAFFOLD achieved 30.0% accuracy(32.43%) at epoch: 12                                                                                                                        
+(scaffold) xzhao181@en4228312l:~/DP_FedScaff_Stein$ 
