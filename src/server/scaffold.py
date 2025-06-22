@@ -24,6 +24,7 @@ class SCAFFOLDServer(ServerBase):
             gpu=self.args.gpu,
             dp_sigma=self.args.dp_sigma,
             clip_bound=self.args.clip_bound,
+            jse=self.args.jse,
         )
         self.c_global = [
             torch.zeros_like(param).to(self.device)

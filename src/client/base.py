@@ -115,6 +115,7 @@ class ClientBase:
             loss.backward()
             self.optimizer.step()
             
+            # TODO: the following clipping part is the same as scaffold.py, we should write a function to avoid code duplication
             # Only apply clipping when differential privacy is needed
             if self.dp_sigma > 0:
                 # Calculate delta and apply clipping

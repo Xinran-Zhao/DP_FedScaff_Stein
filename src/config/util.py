@@ -145,10 +145,10 @@ def apply_jse(noisy_term, sigma, d):
         Shrunk gradient tensor
     """
     numerator = (d - 2) * (sigma ** 2)
-    print("d", d)
+    # print("d", d)
     denominator = noisy_term.pow(2).sum().item()
-    print('>>> denominator', denominator)
+    # print('>>> denominator', denominator)
     shrinkage_factor = 1.0 - numerator / denominator
-    print('>>> shrinkage_factor', shrinkage_factor)
+    # print('>>> shrinkage_factor', shrinkage_factor)
     shrinkage_factor = max(shrinkage_factor, 0.0001)
     return noisy_term * shrinkage_factor

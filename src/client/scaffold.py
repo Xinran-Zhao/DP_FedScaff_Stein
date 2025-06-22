@@ -6,7 +6,7 @@ import torch
 from rich.console import Console
 
 from .base import ClientBase
-from src.config.util import add_dp_noise, add_dp_noise_only
+from src.config.util import apply_jse
 
 
 class SCAFFOLDClient(ClientBase):
@@ -21,6 +21,7 @@ class SCAFFOLDClient(ClientBase):
         gpu: int,
         dp_sigma: float,
         clip_bound: float,
+        jse: bool,
     ):
         super(SCAFFOLDClient, self).__init__(
             backbone,
@@ -32,6 +33,7 @@ class SCAFFOLDClient(ClientBase):
             gpu,
             dp_sigma,
             clip_bound,
+            jse,
         )
         self.c_local: Dict[List[torch.Tensor]] = {}
         self.c_diff = []
@@ -73,21 +75,26 @@ class SCAFFOLDClient(ClientBase):
             c_delta = []
 
             # compute y_delta (difference of model before and after training)
-            y_delta_dict = OrderedDict()
-            trainable_param_names = [name for name, param in model_params.items() if param.requires_grad]
-            
-            for i, (param_l, param_g) in enumerate(zip(self.model.parameters(), trainable_parameters)):
-                pseudo_gradient = param_l - param_g
-                if i < len(trainable_param_names):
-                    y_delta_dict[trainable_param_names[i]] = pseudo_gradient
-            
-            # Apply DP noise only (clipping already done during local training in SCAFFOLD)
+            # NOTE:Potential bug: trainable_parameters may not be the same size as self.model.parameters()
+            seed = epoch * 1000 + self.client_id
+            # Set seed once, then let random generator state advance for each parameter
             if self.dp_sigma > 0:
-                seed = epoch * 1000 + self.client_id
-                y_delta_dict = add_dp_noise_only(y_delta_dict, self.dp_sigma, seed)
+                torch.manual_seed(seed)
             
-            # Convert back to list format
-            y_delta = [y_delta_dict[name] for name in trainable_param_names]
+            for param_l, param_g in zip(self.model.parameters(), trainable_parameters):
+                # add dp noise to param_l-param_g
+                if self.dp_sigma > 0:
+                    noise = torch.randn_like(param_l, device=param_l.device) * self.dp_sigma
+                    noisy_diff = param_l - param_g + noise
+                    # Apply James-Stein estimator if enabled
+                    if self.jse:
+                        # Apply James-Stein estimator to each parameter using per-layer dimensionality
+                        d = param_l.numel()  # Use dimensionality of this specific parameter tensor
+                        y_delta.append(apply_jse(noisy_diff, self.dp_sigma, d))
+                    else:
+                        y_delta.append(noisy_diff)
+                else:
+                    y_delta.append(param_l - param_g)
 
             # compute c_plus
             coef = 1 / (self.local_epochs * self.local_lr)
@@ -110,7 +117,6 @@ class SCAFFOLDClient(ClientBase):
 
     def _train(self):
         self.model.train()
-        
         # Store initial parameters at the start of training
         initial_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
         
@@ -124,22 +130,24 @@ class SCAFFOLDClient(ClientBase):
                 param.grad += c_d.data
             self.optimizer.step()
             
-            # Apply clipping when differential privacy is needed (same as base class)
+            # TODO: the following clipping part is the same as base.py, we should write a function to avoid code duplication
             if self.dp_sigma > 0:
                 # Calculate delta and apply clipping
                 current_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
                 delta = current_params - initial_params
                 total_norm = torch.norm(delta)
-                
+                # print('total_norm', total_norm, 'self.clip_bound', self.clip_bound)
                 if total_norm > self.clip_bound:
                     scale = self.clip_bound / total_norm
+                    # print('scale', scale)
                     delta = delta * scale
                     current_params = initial_params + delta
                     
-                    # Update model parameters with clipped delta
+                    # Update model parameters
                     start_idx = 0
                     with torch.no_grad():
                         for param in self.model.parameters():
                             num_params = param.numel()
                             param.copy_(current_params[start_idx:start_idx + num_params].view(param.shape))
                             start_idx += num_params
+        
