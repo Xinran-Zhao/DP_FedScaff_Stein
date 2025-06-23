@@ -3,11 +3,12 @@
 
 # Federated Learning MNIST Experiment Script
 # This script runs federated learning algorithms with different dp_sigma values and saves all results to a file
-# Usage: ./run_fl_experiment.sh <alpha> [algorithm_name] [jse]
+# Usage: ./run_fl_experiment.sh <alpha1,alpha2,alpha3...> [algorithm_name] [jse]
 # Examples:
-#   ./run_fl_experiment.sh 0.05 scaffold
-#   ./run_fl_experiment.sh 0.1 scaffold jse
-#   ./run_fl_experiment.sh 0.05 fedavg jse
+#   ./run_fl_experiment.sh 0.05,0.1,0.3 scaffold
+#   ./run_fl_experiment.sh 0.05,0.1 scaffold jse
+#   ./run_fl_experiment.sh 0.05,0.1,0.3 fedavg jse
+#   ./run_fl_experiment.sh 0.05,0.1,0.3  (runs all combinations for each alpha)
 
 
 # Function to run data preparation
@@ -34,6 +35,7 @@ prepare_data() {
 run_experiments() {
    local algorithm=$1
    local use_jse=$2
+   local alpha=$3
    local jse_param=""
    local jse_suffix=""
   
@@ -49,7 +51,7 @@ run_experiments() {
        return 1
    fi
   
-   local output_file="${algorithm}_mnist_experiment${jse_suffix}_result.txt"
+   local output_file="${algorithm}_alpha${alpha}_mnist_experiment${jse_suffix}_result.txt"
    local base_command="python ${algorithm_file} --dataset mnist --clip_bound=100 --global_epochs=100 --local_epochs=20 ${jse_param}"
   
    # Array of dp_sigma values to test
@@ -97,43 +99,86 @@ run_experiments() {
 # Check if alpha parameter is provided (required)
 if [ $# -eq 0 ]; then
    echo "Error: Alpha parameter is required!"
-   echo "Usage: ./run_fl_experiment.sh <alpha> [algorithm_name] [jse]"
+   echo "Usage: ./run_fl_experiment.sh <alpha1,alpha2,alpha3...> [algorithm_name] [jse]"
    echo "Examples:"
-   echo "  ./run_fl_experiment.sh 0.05 scaffold"
-   echo "  ./run_fl_experiment.sh 0.1 scaffold jse"
-   echo "  ./run_fl_experiment.sh 0.05 fedavg jse"
+   echo "  ./run_fl_experiment.sh 0.05,0.1,0.3 scaffold"
+   echo "  ./run_fl_experiment.sh 0.05,0.1 scaffold jse"
+   echo "  ./run_fl_experiment.sh 0.05,0.1,0.3 fedavg jse"
+   echo "  ./run_fl_experiment.sh 0.05,0.1,0.3  (runs all combinations for each alpha)"
    exit 1
 fi
 
-# Get alpha parameter (required)
-ALPHA=$1
+# Parse alpha values (comma-separated)
+ALPHA_LIST=$(echo $1 | tr ',' ' ')
 
-# Prepare data once before running experiments
-prepare_data "$ALPHA"
+# Parse algorithm and jse parameters
+ALGORITHM=${2:-}
+USE_JSE="false"
+if [ "$3" = "jse" ]; then
+    USE_JSE="true"
+fi
 
-# Check if only alpha is provided - run all combinations
+# Function to run experiments for all alphas
+run_experiments_for_alphas() {
+    local algorithm=$1
+    local use_jse=$2
+    
+    for alpha in $ALPHA_LIST; do
+        echo ""
+        echo "========================================="
+        echo "Processing alpha=$alpha"
+        echo "========================================="
+        
+        # Prepare data for this alpha
+        prepare_data "$alpha"
+        
+        # Run experiments for this alpha
+        run_experiments "$algorithm" "$use_jse" "$alpha"
+        
+        echo "Completed experiments for alpha=$alpha"
+        echo ""
+    done
+}
+
+# Check if only alphas are provided - run all combinations
 if [ $# -eq 1 ]; then
-    echo "Only alpha provided. Running all algorithm combinations..."
-    echo "This will run: fedavg, fedavg+jse, scaffold, scaffold+jse"
+    echo "Only alphas provided. Running all algorithm combinations for each alpha..."
+    echo "Alpha values: $ALPHA_LIST"
+    echo "This will run: fedavg, fedavg+jse, scaffold, scaffold+jse for each alpha"
     echo "============================================================"
     
-    run_experiments "fedavg" "false"
-    run_experiments "fedavg" "true"
-    run_experiments "scaffold" "false"
-    run_experiments "scaffold" "true"
+    for alpha in $ALPHA_LIST; do
+        echo ""
+        echo "========================================="
+        echo "Processing alpha=$alpha - All Combinations"
+        echo "========================================="
+        
+        # Prepare data for this alpha
+        prepare_data "$alpha"
+        
+        # Run all combinations for this alpha
+        run_experiments "fedavg" "false" "$alpha"
+        run_experiments "fedavg" "true" "$alpha"
+        run_experiments "scaffold" "false" "$alpha"
+        run_experiments "scaffold" "true" "$alpha"
+        
+        echo "Completed all combinations for alpha=$alpha"
+        echo ""
+    done
     
-    echo "All experiment combinations completed!"
+    echo "All experiment combinations completed for all alphas!"
 
 # Specific algorithm specified
 else
-    # Check if algorithm name is provided, default to fedavg
-    ALGORITHM=${2:-fedavg}
-
-    # Check if jse parameter is provided
-    USE_JSE="false"
-    if [ "$3" = "jse" ]; then
-        USE_JSE="true"
+    # Default to fedavg if algorithm not specified
+    if [ -z "$ALGORITHM" ]; then
+        ALGORITHM="fedavg"
     fi
-
-    run_experiments "$ALGORITHM" "$USE_JSE"
+    
+    echo "Running $ALGORITHM with JSE=$USE_JSE for alphas: $ALPHA_LIST"
+    echo "============================================================"
+    
+    run_experiments_for_alphas "$ALGORITHM" "$USE_JSE"
+    
+    echo "All experiments completed for specified algorithm!"
 fi

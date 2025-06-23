@@ -3,8 +3,9 @@
 
 import re
 import os
-import csv
+import glob
 from pathlib import Path
+from collections import defaultdict
 
 
 def extract_results_from_file(filename):
@@ -54,18 +55,60 @@ def extract_results_from_file(filename):
    return results
 
 
-def create_results_table():
+def discover_alpha_values():
+    """
+    Discover all alpha values from existing result files.
+    Returns a sorted list of alpha values.
+    """
+    alpha_values = set()
+    
+    # Look for files matching the pattern: {algorithm}_alpha{alpha}_mnist_experiment{jse_suffix}_result.txt
+    pattern = "*_alpha*_mnist_experiment*_result.txt"
+    files = glob.glob(pattern)
+    
+    for filename in files:
+        # Extract alpha value from filename
+        match = re.search(r'_alpha([0-9.]+)_mnist_experiment', filename)
+        if match:
+            alpha_values.add(float(match.group(1)))
+    
+    return sorted(alpha_values)
+
+
+def get_algorithm_files_for_alpha(alpha):
+    """
+    Get all algorithm result files for a specific alpha value.
+    Returns a dictionary: {algorithm_name: filename}
+    """
+    algorithms = {}
+    
+    # Define expected algorithm combinations
+    algorithm_patterns = [
+        ('fedavg', f'fedavg_alpha{alpha}_mnist_experiment_result.txt'),
+        ('fedavg + jse', f'fedavg_alpha{alpha}_mnist_experiment_jse_result.txt'),
+        ('scaffold', f'scaffold_alpha{alpha}_mnist_experiment_result.txt'),
+        ('scaffold + jse', f'scaffold_alpha{alpha}_mnist_experiment_jse_result.txt')
+    ]
+    
+    for alg_name, filename in algorithm_patterns:
+        if os.path.exists(filename):
+            algorithms[alg_name] = filename
+    
+    return algorithms
+
+
+def create_results_table_for_alpha(alpha):
    """
-   Create a comprehensive results table from all experiment files.
+   Create a results table for a specific alpha value.
+   Returns column_names, data, and all_results for that alpha.
    """
-  
-   # Define the algorithms and their corresponding files
-   algorithms = {
-       'fedavg': 'fedavg_mnist_experiment_result.txt',
-       'fedavg + jse': 'fedavg_mnist_experiment_jse_result.txt',
-       'scaffold': 'scaffold_mnist_experiment_result.txt',
-       'scaffold + jse': 'scaffold_mnist_experiment_jse_result.txt'
-   }
+   
+   # Get algorithm files for this alpha
+   algorithms = get_algorithm_files_for_alpha(alpha)
+   
+   if not algorithms:
+       print(f"Warning: No result files found for alpha={alpha}")
+       return None, None, None
   
    # Expected sigma values
    sigma_values = [0, 0.01, 0.05, 0.1, 0.3, 0.5]
@@ -94,20 +137,20 @@ def create_results_table():
    return column_names, data, all_results
 
 
-def print_table(column_names, data):
+def print_table_for_alpha(alpha, column_names, data):
    """
-   Print the results table in a nice format.
+   Print the results table for a specific alpha value in a nice format.
    """
-   print("\n" + "="*80)
-   print("FEDERATED LEARNING EXPERIMENT RESULTS SUMMARY")
-   print("="*80)
+   print("\n" + "="*100)
+   print(f"FEDERATED LEARNING EXPERIMENT RESULTS - ALPHA = {alpha}")
+   print("="*100)
    print()
   
    # Calculate column widths
    col_widths = []
    for i, col_name in enumerate(column_names):
        max_width = max(len(str(col_name)), max(len(str(row[i])) for row in data))
-       col_widths.append(max_width + 2)  # Add padding
+       col_widths.append(max_width + 3)  # Add more padding for better readability
   
    # Print header
    header_line = ""
@@ -128,26 +171,59 @@ def print_table(column_names, data):
            row_line += f"{str(cell):^{col_widths[i]}}"
        print(row_line)
   
+   print("="*100)
    print()
 
 
-def save_table_to_csv(column_names, data, filename='experiment_results_summary.csv'):
+def save_table_to_txt_for_alpha(alpha, column_names, data):
    """
-   Save the results table to a CSV file.
+   Save the results table for a specific alpha to a nicely formatted text file.
    """
-   with open(filename, 'w', newline='') as csvfile:
-       writer = csv.writer(csvfile)
-       writer.writerow(column_names)
-       writer.writerows(data)
-   print(f"Results saved to: {filename}")
+   filename = f'results_alpha{alpha}_summary.txt'
+   
+   with open(filename, 'w') as f:
+       # Write header
+       f.write("="*100 + "\n")
+       f.write(f"FEDERATED LEARNING EXPERIMENT RESULTS - ALPHA = {alpha}\n")
+       f.write("="*100 + "\n")
+       f.write("\n")
+       
+       # Calculate column widths (same logic as print function)
+       col_widths = []
+       for i, col_name in enumerate(column_names):
+           max_width = max(len(str(col_name)), max(len(str(row[i])) for row in data))
+           col_widths.append(max_width + 3)  # Add padding for readability
+       
+       # Write table header
+       header_line = ""
+       for i, col_name in enumerate(column_names):
+           header_line += f"{col_name:^{col_widths[i]}}"
+       f.write(header_line + "\n")
+       
+       # Write separator
+       separator = ""
+       for width in col_widths:
+           separator += "-" * width
+       f.write(separator + "\n")
+       
+       # Write data rows
+       for row in data:
+           row_line = ""
+           for i, cell in enumerate(row):
+               row_line += f"{str(cell):^{col_widths[i]}}"
+           f.write(row_line + "\n")
+       
+       f.write("="*100 + "\n")
+   
+   print(f"Results table for alpha={alpha} saved to: {filename}")
 
 
-def generate_summary_statistics(all_results):
+def generate_summary_statistics_for_alpha(alpha, all_results):
    """
-   Generate some summary statistics from the results.
+   Generate summary statistics for a specific alpha value.
    """
    print("="*80)
-   print("SUMMARY STATISTICS")
+   print(f"SUMMARY STATISTICS FOR ALPHA = {alpha}")
    print("="*80)
   
    for alg_name, results in all_results.items():
@@ -166,51 +242,64 @@ def generate_summary_statistics(all_results):
        if 0 in results and 0.1 in results:
            drop_01 = results[0] - results[0.1]
            print(f"  Accuracy drop (σ=0 to σ=0.1): {drop_01:.2f}%")
+   
+   print("="*80)
 
 
 def main():
    """
-   Main function to analyze results and generate table.
+   Main function to analyze results and generate separate tables for each alpha value.
    """
-   print("Analyzing Federated Learning Experiment Results...")
-   print("-" * 50)
+   print("="*100)
+   print("FEDERATED LEARNING EXPERIMENT ANALYSIS - ALPHA-SPECIFIC RESULTS")
+   print("="*100)
+   print("Generating separate tables for each alpha value...")
+   print()
   
-   # Check if we're in the right directory
-   current_files = os.listdir('.')
-   expected_files = [
-       'fedavg_mnist_experiment_result.txt',
-       'fedavg_mnist_experiment_jse_result.txt',
-       'scaffold_mnist_experiment_result.txt',
-       'scaffold_mnist_experiment_jse_result.txt'
-   ]
-  
-   found_files = [f for f in expected_files if f in current_files]
-   missing_files = [f for f in expected_files if f not in current_files]
-  
-   if missing_files:
-       print("Missing result files:")
-       for f in missing_files:
-           print(f"  - {f}")
-       print("\nNote: Table will show 'N/A' for missing experiments.")
-       print()
-  
-   # Create results table
-   try:
-       column_names, data, all_results = create_results_table()
-      
-       # Print table
-       print_table(column_names, data)
-      
-       # Save to CSV
-       save_table_to_csv(column_names, data)
-      
-       # Generate summary statistics
-       generate_summary_statistics(all_results)
-      
-   except Exception as e:
-       print(f"Error processing results: {str(e)}")
+   # Discover all alpha values
+   alpha_values = discover_alpha_values()
+   
+   if not alpha_values:
+       print("ERROR: No result files found with the expected naming pattern!")
+       print("Expected pattern: {algorithm}_alpha{alpha}_mnist_experiment{_jse}_result.txt")
+       print("Please make sure you have run experiments and have result files in the current directory.")
        return 1
-  
+   
+   print(f"Found alpha values: {alpha_values}")
+   print(f"Will generate {len(alpha_values)} separate tables...")
+   print()
+   
+   # Process each alpha value
+   for i, alpha in enumerate(alpha_values, 1):
+       print(f"\n{'='*60}")
+       print(f"TABLE {i}/{len(alpha_values)}: Processing Alpha = {alpha}")
+       print(f"{'='*60}")
+       
+       # Create results table for this alpha
+       column_names, data, all_results = create_results_table_for_alpha(alpha)
+       
+       if column_names is None:
+           print(f"Skipping alpha={alpha} due to missing files.")
+           continue
+           
+       # Print table
+       print_table_for_alpha(alpha, column_names, data)
+       
+       # Save to text
+       save_table_to_txt_for_alpha(alpha, column_names, data)
+       
+       # Generate summary statistics
+       generate_summary_statistics_for_alpha(alpha, all_results)
+   
+   print("\n" + "="*100)
+   print("ANALYSIS COMPLETE")
+   print("="*100)
+   print(f"Generated {len(alpha_values)} separate result tables.")
+   print("Text files saved:")
+   for alpha in alpha_values:
+       print(f"  - results_alpha{alpha}_summary.txt")
+   print()
+   
    return 0
 
 
