@@ -63,21 +63,10 @@ class ServerBase:
         _dummy_model = self.backbone(self.args.dataset).to(self.device)
         passed_epoch = 0
         self.global_params_dict: OrderedDict[str : torch.Tensor] = None
-        if os.listdir(self.temp_dir) != [] and self.args.save_period > 0:
-            if os.path.exists(self.temp_dir / "global_model.pt"):
-                self.global_params_dict = torch.load(self.temp_dir / "global_model.pt")
-                self.logger.log("Find existed global model...")
-
-            if os.path.exists(self.temp_dir / "epoch.pkl"):
-                with open(self.temp_dir / "epoch.pkl", "rb") as f:
-                    passed_epoch = pickle.load(f)
-                self.logger.log(
-                    f"Have run {passed_epoch} epochs already.",
-                )
-        else:
-            self.global_params_dict = OrderedDict(
-                _dummy_model.state_dict(keep_vars=True)
-            )
+     
+        self.global_params_dict = OrderedDict(
+            _dummy_model.state_dict(keep_vars=True)
+        )
 
         self.global_epochs = self.args.global_epochs - passed_epoch
         self.logger.log("Backbone:", _dummy_model)
