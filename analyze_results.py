@@ -111,7 +111,7 @@ def create_results_table_for_alpha(alpha):
        return None, None, None
   
    # Expected sigma values
-   sigma_values = [0, 0.01, 0.05, 0.1, 0.3, 0.5]
+   sigma_values = [0, 0.01, 0.03, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
   
    # Extract results for each algorithm
    all_results = {}
