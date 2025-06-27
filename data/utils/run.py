@@ -83,7 +83,41 @@ def main(args):
             _DATASET_ROOT,
             train=False,
         )
-    concat_datasets = [trainset, testset]
+    # concat_datasets = [trainset, testset]
+    concat_datasets = [trainset]
+    
+    # Create proper test datasets for each client
+    test_datasets = []
+    samples_per_client = len(testset) // client_num_in_total
+    
+    for i in range(client_num_in_total):
+        start_idx = i * samples_per_client
+        end_idx = (i + 1) * samples_per_client
+        
+        # Get both data and targets for this split
+        test_data = testset.data[start_idx:end_idx]
+        test_targets = testset.targets[start_idx:end_idx]
+        
+        # Convert to tensor if needed
+        if not isinstance(test_data, torch.Tensor):
+            test_data = transforms.ToTensor()(test_data)
+        test_data = test_data.float()
+        
+        # Apply normalization
+        test_data = transforms.Normalize(MEAN[args.dataset], STD[args.dataset])(test_data)
+        
+        # Create dataset
+        full_test_dataset = target_dataset(
+            data=test_data,
+            targets=test_targets,
+            transform=transform,
+            target_transform=target_transform
+        )
+        
+        # Wrap in Subset to match train/val type
+        indices = list(range(len(full_test_dataset)))
+        test_datasets.append(torch.utils.data.Subset(full_test_dataset, indices))
+
     if args.alpha > 0:  # NOTE: Dirichlet(alpha)
         all_datasets, stats = dirichlet_distribution(
             ori_dataset=concat_datasets,
@@ -108,16 +142,26 @@ def main(args):
         range(0, len(all_datasets), args.client_num_in_each_pickles)
     ):
         subset = []
-        for dataset in all_datasets[
+        print(f"\nProcessing subset {subset_id}:")
+        for idx, dataset in enumerate(all_datasets[
             client_id : client_id + args.client_num_in_each_pickles
-        ]:
+        ]):
+            current_client_id = client_id + idx
             num_val_samples = int(len(dataset) * args.valset_ratio)
-            num_test_samples = int(len(dataset) * args.test_ratio)
-            num_train_samples = len(dataset) - num_val_samples - num_test_samples
-            train, val, test = random_split(
-                dataset, [num_train_samples, num_val_samples, num_test_samples]
+            num_train_samples = len(dataset) - num_val_samples
+            train, val = random_split(
+                dataset, [num_train_samples, num_val_samples]
             )
-            subset.append({"train": train, "val": val, "test": test})
+            num_test_samples = len(test_datasets[current_client_id])
+            print(f"Client {current_client_id}:")
+            print(f"  - Train samples: {len(train)}")
+            print(f"  - Val samples: {len(val)}")
+            print(f"  - Test samples: {num_test_samples}")
+            subset.append({
+                "train": train, 
+                "val": val, 
+                "test": test_datasets[current_client_id]
+                })
         with open(_PICKLES_DIR / str(subset_id) + ".pkl", "wb") as f:
             pickle.dump(subset, f)
 
