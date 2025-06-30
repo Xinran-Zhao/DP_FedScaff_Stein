@@ -16,7 +16,7 @@ import sys
 
 sys.path.append(_CURRENT_DIR.parent)
 
-from config.models import LeNet5
+from config.models import LeNet5, SimpleMLP
 from config.util import (
     DATA_DIR,
     LOG_DIR,
@@ -47,7 +47,7 @@ class ServerBase:
             "cuda" if self.args.gpu and torch.cuda.is_available() else "cpu"
         )
         fix_random_seed(self.args.seed)
-        self.backbone = LeNet5
+        self.backbone = SimpleMLP
         self.logger = Console(
             record=True,
             log_path=False,
