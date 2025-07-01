@@ -3,10 +3,12 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
+import torch
 from torch.utils.data import Dataset
 
 
 def dirichlet_distribution(
+    trainset: Dataset,
     trainset: Dataset,
     ori_dataset: List[Dataset],
     target_dataset: Dataset,
@@ -25,6 +27,8 @@ def dirichlet_distribution(
     )
     # If ori_dataset has only one element, concatenation is unnecessary
     # if len(ori_dataset) == 1:
+    # If ori_dataset has only one element, concatenation is unnecessary
+    # if len(ori_dataset) == 1:
     data_numpy = np.concatenate(
         [ds.data for ds in ori_dataset], axis=0, dtype=np.float32
     )
@@ -32,8 +36,13 @@ def dirichlet_distribution(
     print("data_numpy shape:", data_numpy.shape)
     print("data_numpy_by_trainset type:", type(data_numpy_by_trainset))
     print("data_numpy_by_trainset shape:", data_numpy_by_trainset.shape)
+    print("data_numpy type:", type(data_numpy))
+    print("data_numpy shape:", data_numpy.shape)
+    print("data_numpy_by_trainset type:", type(data_numpy_by_trainset))
+    print("data_numpy_by_trainset shape:", data_numpy_by_trainset.shape)
     idx = [np.where(targets_numpy == i)[0] for i in range(NUM_CLASS)]
 
+    while MIN_SIZE < 10: # ensures each client gets at least 10 samples
     while MIN_SIZE < 10: # ensures each client gets at least 10 samples
         idx_batch = [[] for _ in range(num_clients)]
         for k in range(NUM_CLASS):

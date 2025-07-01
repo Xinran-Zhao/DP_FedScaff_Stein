@@ -59,6 +59,7 @@ def main(args):
     client_num_in_total = args.client_num_in_total
     client_num_in_total = args.client_num_in_total
     # TODO: ori_dataset is image dataset, target_dataset is tensor dataset?
+    # TODO: ori_dataset is image dataset, target_dataset is tensor dataset?
     ori_dataset, target_dataset = DATASET[args.dataset]
     if args.dataset == "emnist":
         trainset = ori_dataset(
