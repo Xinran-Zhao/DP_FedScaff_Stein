@@ -19,7 +19,7 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10, CIFAR100, EMNIST, MNIST, FashionMNIST
 
 from constants import MEAN, STD
-from partition import dirichlet_distribution, randomly_assign_classes, dirichlet_noniid_partition
+from partition import randomly_assign_classes, dirichlet_noniid_partition
 from utils.dataset import CIFARDataset, MNISTDataset
 from util import set_seed
 
@@ -120,12 +120,6 @@ def main(args):
         indices = list(range(len(full_test_dataset)))
         test_datasets.append(torch.utils.data.Subset(full_test_dataset, indices))
 
-    # if args.alpha > 0:  # NOTE: Dirichlet(alpha)
-    #     all_datasets, stats = dirichlet_noniid_partition(
-    #         train_data_raw=trainset, # type: Dataset
-    #         num_clients=client_num_in_total,
-    #     )
-
     if args.alpha > 0:  # NOTE: Dirichlet(alpha)
         all_datasets, stats = dirichlet_noniid_partition(
             train_data_raw=trainset,
@@ -134,15 +128,6 @@ def main(args):
             transform=transform,
             target_transform=target_transform,
         )
-        # all_datasets, stats = dirichlet_distribution(
-        #     trainset=trainset,
-        #     ori_dataset=concat_datasets,
-        #     target_dataset=target_dataset,
-        #     num_clients=client_num_in_total,
-        #     alpha=args.alpha,
-        #     transform=transform,
-        #     target_transform=target_transform,
-        # )
     else:  # NOTE: sort and partition
         classes = len(ori_dataset.classes) if args.classes <= 0 else args.classes
         all_datasets, stats = randomly_assign_classes(
