@@ -39,11 +39,20 @@ def extract_results_from_file(filename):
       
        # Find the RESULTS section for this experiment
        results_section = False
-       for line in lines:
-           if "==================== RESULTS ====================" in line:
+       for i, line in enumerate(lines):
+           # Handle multiple formats:
+           # 1. "==================== RESULTS ===================="
+           # 2. "==================== RESULTS" followed by "===================="
+           # 3. "====" followed by "RESULTS" followed by "====" 
+           if ("==================== RESULTS" in line or 
+               (line.strip() == "RESULTS" or line.strip().startswith("RESULTS "))):
                results_section = True
                continue
           
+           # Skip lines that are just "====" (continuation of RESULTS header)
+           if results_section and line.strip() and "====" in line and "accuracy:" not in line:
+               continue
+               
            if results_section and "accuracy:" in line:
                # Extract accuracy value
                acc_match = re.search(r'accuracy:\s*([0-9.]+)%', line)
@@ -111,7 +120,8 @@ def create_results_table_for_alpha(alpha):
        return None, None, None
   
    # Expected sigma values
-   sigma_values = [0, 0.01, 0.03, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+#    sigma_values = [0, 0.01, 0.03, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+   sigma_values = [0, 0.01, 0.05, 0.1, 0.3, 0.5, 1]
   
    # Extract results for each algorithm
    all_results = {}

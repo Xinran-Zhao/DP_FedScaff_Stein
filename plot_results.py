@@ -109,16 +109,16 @@ def plot_federated_learning_results(filename):
         
         # Plot lines for each method (only if the algorithm has any non-NaN values)
         if not np.all(np.isnan(fedavg)):
-            plt.plot(sigma, fedavg, marker='o', linewidth=2, label='FedAvg', color='blue')
+            plt.plot(sigma, fedavg, marker='o', linewidth=2, label='FedAvg', color='#1e40af')  # Royal blue (dark but clearly blue)
         
         if not np.all(np.isnan(fedavg_jse)):
-            plt.plot(sigma, fedavg_jse, marker='s', linewidth=2, label='FedAvg + JSE', color='red')
+            plt.plot(sigma, fedavg_jse, marker='s', linewidth=2, label='FedAvg + JSE', color='#4da6ff')  # Bright blue (light)
         
         if not np.all(np.isnan(scaffold)):
-            plt.plot(sigma, scaffold, marker='^', linewidth=2, label='SCAFFOLD', color='green')
+            plt.plot(sigma, scaffold, marker='^', linewidth=2, label='SCAFFOLD', color='#cc4400')  # Dark orange/red
         
         if not np.all(np.isnan(scaffold_jse)):
-            plt.plot(sigma, scaffold_jse, marker='d', linewidth=2, label='SCAFFOLD + JSE', color='orange')
+            plt.plot(sigma, scaffold_jse, marker='d', linewidth=2, label='SCAFFOLD + JSE', color='#ff9966')  # Light orange
         
         # Customize the plot
         plt.xlabel('Sigma ($\sigma$)', fontsize=14)
@@ -164,6 +164,6 @@ def plot_federated_learning_results(filename):
 
 # Main execution
 if __name__ == "__main__":
-    for alpha in [0.01, 0.05, 0.1, 0.3, 0.5]:
+    for alpha in [0.01, 0.05, 0.1, 0.3, 0.5, 1.0]:
         results_filename = f"results_alpha{alpha}_summary.txt"
         plot_federated_learning_results(results_filename) 
