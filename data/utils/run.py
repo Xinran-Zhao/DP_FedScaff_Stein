@@ -138,7 +138,10 @@ def main(args):
             transform=transform,
             target_transform=target_transform,
         )
-
+    # Print sizes for all clients
+    print("\nDataset sizes per client:")
+    for i, dataset in enumerate(all_datasets):
+        print(f"Client {i}: {len(dataset)} samples")
     for subset_id, client_id in enumerate(
         range(0, len(all_datasets), args.client_num_in_each_pickles)
     ):
@@ -149,14 +152,14 @@ def main(args):
             current_client_id = client_id + idx
             num_val_samples = int(len(dataset) * args.valset_ratio)
             num_train_samples = len(dataset) - num_val_samples
-            train, val = random_split(
-                dataset, [num_train_samples, num_val_samples]
-            )
+            train = torch.utils.data.Subset(dataset, list(range(len(dataset))))
+            val = None
+
             num_test_samples = len(test_datasets[current_client_id])
-            # print(f"Client {current_client_id}:")
-            # print(f"  - Train samples: {len(train)}")
-            # print(f"  - Val samples: {len(val)}")
-            # print(f"  - Test samples: {num_test_samples}")
+            print("-"*20, "Client", current_client_id, "-"*20)
+            print(f"  - Train samples: {len(train)}")
+            print(f"  - Val: {val}")
+            print(f"  - Test samples: {num_test_samples}")
             subset.append({
                 "train": train, 
                 "val": val, 

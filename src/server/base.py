@@ -130,23 +130,6 @@ class ServerBase:
                 dim=-1,
             )
             self.global_params_dict[key] += aggregated_pseudo_grad_for_key
-        
-        # # to delete
-        # updated_params_cache = list(zip(*res_cache))[0]
-        # weights_cache = list(zip(*res_cache))[1]
-        # weight_sum = sum(weights_cache)
-        # weights = torch.tensor(weights_cache, device=self.device) / weight_sum
-
-        # aggregated_params = []
-
-        # for params in zip(*updated_params_cache):
-        #     aggregated_params.append(
-        #         torch.sum(weights * torch.stack(params, dim=-1), dim=-1)
-        #     )
-
-        # self.global_params_dict = OrderedDict(
-        #     zip(self.global_params_dict.keys(), aggregated_params)
-        # )
 
     def test(self) -> None:
         self.logger.log("=" * 30, "TESTING", "=" * 30, style="bold blue")

@@ -56,12 +56,12 @@ class ClientBase:
         self.jse = jse
         
     @torch.no_grad()
-    def evaluate(self, use_valset=True):
+    def evaluate(self, use_valset=False):
         self.model.eval()
         criterion = torch.nn.CrossEntropyLoss(reduction="sum")
         loss = 0
         correct = 0
-        dataloader = DataLoader(self.valset if use_valset else self.testset, 32)
+        dataloader = DataLoader(self.valset if use_valset else self.trainset, 32)
         for x, y in dataloader:
             x, y = x.to(self.device), y.to(self.device)
             logits = self.model(x)
@@ -77,7 +77,7 @@ class ClientBase:
         epoch: int,
         evaluate=True,
         verbose=False,
-        use_valset=True,
+        use_valset=False, # use trainset to evaluate instead of valset
     ) -> Tuple[List[torch.Tensor], int, OrderedDict[str, torch.Tensor]]:
         self.client_id = client_id
         self.set_parameters(model_params)
@@ -163,13 +163,14 @@ class ClientBase:
         self.valset = datasets["val"]
         self.testset = datasets["test"]
 
-    def _log_while_training(self, evaluate=True, verbose=False, use_valset=True):
+    def _log_while_training(self, evaluate=True, verbose=False, use_valset=False):
         def _log_and_train(*args, **kwargs):
             loss_before = 0
             loss_after = 0
             correct_before = 0
             correct_after = 0
-            num_samples = len(self.valset)
+            num_samples = len(self.trainset)
+            print("total number of samples", num_samples)
             if evaluate:
                 loss_before, correct_before = self.evaluate(use_valset)
 
@@ -180,12 +181,14 @@ class ClientBase:
 
             if verbose:
                 self.logger.log(
-                    "client [{}]   [bold red]loss: {:.4f} -> {:.4f}    [bold blue]accuracy: {:.2f}% -> {:.2f}%".format(
+                    "client [{}]   [bold red]loss: {:.4f} -> {:.4f}    [bold blue]accuracy: {:.2f}% -> {:.2f}% (Correct samples: {} -> {})".format(
                         self.client_id,
                         loss_before / num_samples,
                         loss_after / num_samples,
                         correct_before / num_samples * 100.0,
                         correct_after / num_samples * 100.0,
+                        correct_before,
+                        correct_after,
                     )
                 )
 
