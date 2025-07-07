@@ -107,35 +107,41 @@ class ClientBase:
         # Store initial parameters at the start of training
         initial_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
         
-        for _ in range(self.local_epochs):
-            x, y = self.get_data_batch()
-            logits = self.model(x)
-            loss = self.criterion(logits, y)
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            
-            # TODO: the following clipping part is the same as scaffold.py, we should write a function to avoid code duplication
-            # Only apply clipping when differential privacy is needed
-            if self.dp_sigma > 0:
-                # Calculate delta and apply clipping
-                current_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
-                delta = current_params - initial_params
-                total_norm = torch.norm(delta)
-                # print('total_norm', total_norm, 'self.clip_bound', self.clip_bound)
-                if total_norm > self.clip_bound:
-                    scale = self.clip_bound / total_norm
-                    # print('scale', scale)
-                    delta = delta * scale
-                    current_params = initial_params + delta
-                    
-                    # Update model parameters
-                    start_idx = 0
-                    with torch.no_grad():
-                        for param in self.model.parameters():
-                            num_params = param.numel()
-                            param.copy_(current_params[start_idx:start_idx + num_params].view(param.shape))
-                            start_idx += num_params
+        # Create DataLoader for proper batch processing
+        batch_size = self.batch_size if self.batch_size > 0 else 64  # Default batch size if not specified
+        dataloader = DataLoader(self.trainset, batch_size=batch_size, shuffle=True)
+        
+        for epoch in range(self.local_epochs):
+            for x, y in dataloader:
+                x, y = x.to(self.device), y.to(self.device)
+                logits = self.model(x)
+                loss = self.criterion(logits, y)
+                # print('loss', loss)
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                
+                # TODO: the following clipping part is the same as scaffold.py, we should write a function to avoid code duplication
+                # Only apply clipping when differential privacy is needed
+                if self.dp_sigma > 0:
+                    # Calculate delta and apply clipping
+                    current_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
+                    delta = current_params - initial_params
+                    total_norm = torch.norm(delta)
+                    # print('total_norm', total_norm, 'self.clip_bound', self.clip_bound)
+                    if total_norm > self.clip_bound:
+                        scale = self.clip_bound / total_norm
+                        # print('scale', scale)
+                        delta = delta * scale
+                        current_params = initial_params + delta
+                        
+                        # Update model parameters
+                        start_idx = 0
+                        with torch.no_grad():
+                            for param in self.model.parameters():
+                                num_params = param.numel()
+                                param.copy_(current_params[start_idx:start_idx + num_params].view(param.shape))
+                                start_idx += num_params
         
         return (
             list(self.model.state_dict(keep_vars=True).values()),
@@ -170,7 +176,6 @@ class ClientBase:
             correct_before = 0
             correct_after = 0
             num_samples = len(self.trainset)
-            print("total number of samples", num_samples)
             if evaluate:
                 loss_before, correct_before = self.evaluate(use_valset)
 
@@ -180,6 +185,7 @@ class ClientBase:
                 loss_after, correct_after = self.evaluate(use_valset)
 
             if verbose:
+                
                 self.logger.log(
                     "client [{}]   [bold red]loss: {:.4f} -> {:.4f}    [bold blue]accuracy: {:.2f}% -> {:.2f}% (Correct samples: {} -> {})".format(
                         self.client_id,
