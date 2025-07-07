@@ -52,7 +52,7 @@ run_experiments() {
    fi
   
    local output_file="${algorithm}_alpha${alpha}_mnist_experiment${jse_suffix}_result.txt"
-   local base_command="python ${algorithm_file} --dataset mnist --clip_bound=100 --global_epochs=200 --local_epochs=20 --batch_size=64 ${jse_param}"
+   local base_command="PYTHONPATH=. python ${algorithm_file} --dataset mnist --clip_bound=100 --global_epochs=200 --local_epochs=20 --batch_size=64 ${jse_param}"
   
    # Array of dp_sigma values to test
    local dp_sigma_values=(0 0.01 0.05 0.1)

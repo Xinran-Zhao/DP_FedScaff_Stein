@@ -51,10 +51,10 @@ def main(args):
     target_transform = None
 
     if not os.path.isdir(_DATASET_ROOT):
-        os.mkdir(_DATASET_ROOT)
+        os.makedirs(_DATASET_ROOT)
     if os.path.isdir(_PICKLES_DIR):
         os.system(f"rm -rf {_PICKLES_DIR}")
-    os.system(f"mkdir -p {_PICKLES_DIR}")
+    os.makedirs(_PICKLES_DIR, exist_ok=True)
 
     client_num_in_total = args.client_num_in_total
     client_num_in_total = args.client_num_in_total
@@ -167,6 +167,76 @@ def main(args):
                 })
         with open(_PICKLES_DIR / str(subset_id) + ".pkl", "wb") as f:
             pickle.dump(subset, f)
+
+    # Create normalized training dataset for global model evaluation
+    train_data = trainset.data
+    if not isinstance(train_data, torch.Tensor):
+        if isinstance(train_data, np.ndarray):
+            train_data = torch.from_numpy(train_data)
+        else:
+            train_data = transforms.ToTensor()(train_data)
+    train_data = train_data.float()
+    
+    # Handle different dataset formats
+    if train_data.dim() == 3:  # Add channel dimension for grayscale images
+        train_data = train_data.unsqueeze(1)
+    elif train_data.dim() == 4:  # Already has channel dimension
+        pass
+    else:
+        raise ValueError(f"Unexpected data dimension: {train_data.dim()}")
+        
+    train_data = transforms.Normalize(MEAN[args.dataset], STD[args.dataset])(train_data)
+    
+    # Convert targets to tensor if needed
+    targets = trainset.targets
+    if not isinstance(targets, torch.Tensor):
+        targets = torch.tensor(targets)
+    
+    full_train_dataset = target_dataset(
+        data=train_data,
+        targets=targets,
+        transform=transform,
+        target_transform=target_transform
+    )
+    
+    # Save the normalized training dataset for server use
+    with open(_PICKLES_DIR / "full_trainset.pkl", "wb") as f:
+        pickle.dump(full_train_dataset, f)
+
+    # Create normalized test dataset for global model evaluation
+    test_data = testset.data
+    if not isinstance(test_data, torch.Tensor):
+        if isinstance(test_data, np.ndarray):
+            test_data = torch.from_numpy(test_data)
+        else:
+            test_data = transforms.ToTensor()(test_data)
+    test_data = test_data.float()
+    
+    # Handle different dataset formats
+    if test_data.dim() == 3:  # Add channel dimension for grayscale images
+        test_data = test_data.unsqueeze(1)
+    elif test_data.dim() == 4:  # Already has channel dimension
+        pass
+    else:
+        raise ValueError(f"Unexpected data dimension: {test_data.dim()}")
+        
+    test_data = transforms.Normalize(MEAN[args.dataset], STD[args.dataset])(test_data)
+    
+    # Convert targets to tensor if needed
+    test_targets = testset.targets
+    if not isinstance(test_targets, torch.Tensor):
+        test_targets = torch.tensor(test_targets)
+    
+    full_test_dataset = target_dataset(
+        data=test_data,
+        targets=test_targets,
+        transform=transform,
+        target_transform=target_transform
+    )
+    
+    # Save the normalized test dataset for server use
+    with open(_PICKLES_DIR / "full_testset.pkl", "wb") as f:
+        pickle.dump(full_test_dataset, f)
 
     # save stats
     if args.type == "user":

@@ -9,6 +9,7 @@ from path import Path
 from rich.console import Console
 from rich.progress import track
 from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 _CURRENT_DIR = Path(__file__).parent.abspath()
 
@@ -47,7 +48,7 @@ class ServerBase:
             "cuda" if self.args.gpu and torch.cuda.is_available() else "cpu"
         )
         fix_random_seed(self.args.seed)
-        self.backbone = SimpleMLP
+        self.backbone = SimpleMLP  # LeNet5
         self.logger = Console(
             record=True,
             log_path=False,
@@ -74,6 +75,47 @@ class ServerBase:
         self.trainer: ClientBase = None
         self.num_correct = [[] for _ in range(self.global_epochs)]
         self.num_samples = [[] for _ in range(self.global_epochs)]
+        # Track global model performance
+        self.global_train_loss = []
+        self.global_train_acc = []
+        
+        # Load the full training and test datasets
+        pickles_dir = Path(PROJECT_DIR) / "data" / self.args.dataset / "pickles"
+        with open(pickles_dir / "full_trainset.pkl", "rb") as f:
+            self.full_trainset = pickle.load(f)
+        with open(pickles_dir / "full_testset.pkl", "rb") as f:
+            self.full_testset = pickle.load(f)
+
+    @torch.no_grad()
+    def evaluate_global_model(self):
+        """Evaluate the global model on the complete training dataset."""
+        if self.full_trainset is None:
+            raise RuntimeError("Full training dataset has not been loaded.")
+            
+        # Create a model with global parameters
+        model = self.backbone(self.args.dataset).to(self.device)
+        model.load_state_dict(self.global_params_dict)
+        model.eval()
+        
+        criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+        dataloader = DataLoader(self.full_trainset, batch_size=128)
+        
+        total_loss = 0
+        total_correct = 0
+        total_samples = len(self.full_trainset)
+        
+        for x, y in dataloader:
+            x, y = x.to(self.device), y.to(self.device)
+            logits = model(x)
+            total_loss += criterion(logits, y).item()
+            pred = torch.softmax(logits, -1).argmax(-1)
+            total_correct += (pred == y).int().sum().item()
+        print(">>>>> total number of samples: ", total_samples, " >>>> total correct: ", total_correct)
+        
+        avg_loss = total_loss / total_samples
+        accuracy = (total_correct / total_samples) * 100.0
+        
+        return avg_loss, accuracy
 
     def train(self):
         self.logger.log("=" * 30, "TRAINING", "=" * 30, style="bold green")
@@ -87,7 +129,6 @@ class ServerBase:
             else tqdm(range(self.global_epochs), "Training...")
         )
         for E in progress_bar:
-
             if E % self.args.verbose_gap == 0:
                 self.logger.log("=" * 30, f"ROUND: {E}", "=" * 30)
 
@@ -110,6 +151,17 @@ class ServerBase:
                 self.num_samples[E].append(stats["size"])
             self.aggregate(pseudo_grad_cache, res_cache)
 
+            # Evaluate global model on all training data after aggregation
+            global_loss, global_acc = self.evaluate_global_model()
+            self.global_train_loss.append(global_loss)
+            self.global_train_acc.append(global_acc)
+            
+            if E % self.args.verbose_gap == 0:
+                self.logger.log(
+                    "[bold green]Global Model Performance on All Training Data:[/bold green]"
+                    f" Loss: {global_loss:.4f}, Accuracy: {global_acc:.2f} %"
+                )
+
             if E % self.args.save_period == 0:
                 torch.save(
                     self.global_params_dict,
@@ -117,6 +169,12 @@ class ServerBase:
                 )
                 with open(self.temp_dir / "epoch.pkl", "wb") as f:
                     pickle.dump(E, f)
+                # Save global model performance metrics
+                with open(self.temp_dir / "global_metrics.pkl", "wb") as f:
+                    pickle.dump({
+                        "loss": self.global_train_loss,
+                        "accuracy": self.global_train_acc
+                    }, f)
 
     @torch.no_grad()
     def aggregate(self, pseudo_grad_cache,res_cache):
@@ -133,34 +191,51 @@ class ServerBase:
 
     def test(self) -> None:
         self.logger.log("=" * 30, "TESTING", "=" * 30, style="bold blue")
-        all_loss = []
-        all_correct = []
-        all_samples = []
-        for client_id in track(
-            self.client_id_indices,
-            "[bold blue]Testing...",
-            console=self.logger,
-            disable=self.args.log,
-        ):
-            client_local_params = clone_parameters(self.global_params_dict)
-            stats = self.trainer.test(
-                client_id=client_id,
-                model_params=client_local_params,
-            )
-            # self.logger.log(
-            #     f"client [{client_id}]  [red]loss: {(stats['loss'] / stats['size']):.4f}    [magenta]accuracy: {stats(['correct'] / stats['size'] * 100):.2f}%"
-            # )
-            all_loss.append(stats["loss"])
-            all_correct.append(stats["correct"])
-            all_samples.append(stats["size"])
+        
+        if self.full_testset is None:
+            raise RuntimeError("Full test dataset has not been loaded.")
+            
+        # Create a model with global parameters
+        model = self.backbone(self.args.dataset).to(self.device)
+        model.load_state_dict(self.global_params_dict)
+        model.eval()
+        
+        # Create dataloader for the complete test dataset
+        criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+        dataloader = DataLoader(self.full_testset, batch_size=128, shuffle=False)
+        
+        total_loss = 0
+        total_correct = 0
+        total_samples = len(self.full_testset)
+        
+        with torch.no_grad():
+            for x, y in track(
+                dataloader,
+                "[bold blue]Testing...",
+                console=self.logger,
+                disable=self.args.log,
+            ):
+                x, y = x.to(self.device), y.to(self.device)
+                logits = model(x)
+                total_loss += criterion(logits, y).item()
+                pred = torch.softmax(logits, -1).argmax(-1)
+                total_correct += (pred == y).int().sum().item()
+        
+        avg_loss = total_loss / total_samples
+        accuracy = (total_correct / total_samples) * 100.0
+        
         self.logger.log("=" * 20, "RESULTS", "=" * 20, style="bold green")
         self.logger.log(
+            "Global Model Performance on Complete Test Dataset:"
+        )
+        self.logger.log(
             "loss: {:.4f}    accuracy: {:.2f}%".format(
-                sum(all_loss) / sum(all_samples),
-                sum(all_correct) / sum(all_samples) * 100.0,
+                avg_loss,
+                accuracy,
             )
         )
-
+        
+        # Track when certain accuracy thresholds are reached
         acc_range = [90.0, 80.0, 70.0, 60.0, 50.0, 40.0, 30.0, 20.0, 10.0]
         min_acc_idx = 10
         max_acc = 0
