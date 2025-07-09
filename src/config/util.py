@@ -6,11 +6,44 @@ from typing import OrderedDict, Union
 import numpy as np
 import torch
 from path import Path
+from torchvision import transforms, datasets
+from torch.utils.data import DataLoader, TensorDataset
 
 PROJECT_DIR = Path(__file__).parent.parent.parent.abspath()
 LOG_DIR = PROJECT_DIR / "logs"
 TEMP_DIR = PROJECT_DIR / "temp"
 DATA_DIR = PROJECT_DIR / "data"
+
+
+def get_mnist_loaders(client_num_per_round):
+    fix_random_seed(seed=1)
+    transform = transforms.ToTensor()
+    train_ds = datasets.MNIST("./data", train=True,  download=True, transform=transform)
+    test_ds  = datasets.MNIST("./data", train=False, download=True, transform=transform)
+    
+    # normalize & reshape
+    X_train = train_ds.data.float().unsqueeze(1) / 255.0
+    X_test  = test_ds.data .float().unsqueeze(1) / 255.0
+    y_train = train_ds.targets
+    y_test  = test_ds.targets 
+
+    # global loaders
+    train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=1024, shuffle=False)
+    test_loader  = DataLoader(TensorDataset(X_test,  y_test ), batch_size=1024, shuffle=False)
+
+    # split into client loaders
+    perm  = torch.randperm(len(X_train))
+    chunk = len(X_train) // client_num_per_round
+    idxs = [perm[i*chunk:(i+1)*chunk] for i in range(client_num_per_round)]
+    idxs[-1] = perm[(client_num_per_round-1)*chunk:]
+
+
+    client_loaders = [
+        DataLoader(TensorDataset(X_train[i], y_train[i]), batch_size=64, shuffle=True)
+        for i in idxs
+    ]
+
+    return train_loader, test_loader, client_loaders
 
 
 def fix_random_seed(seed: int) -> None:
@@ -57,7 +90,7 @@ def get_args() -> Namespace:
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--log", type=int, default=0)
-    parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--client_num_per_round", type=int, default=5)
     parser.add_argument("--save_period", type=int, default=5)
     parser.add_argument(
@@ -111,13 +144,12 @@ def add_dp_noise(
 
 
 def add_dp_noise_only(
-    pseudo_gradient: OrderedDict[str, torch.Tensor], sigma: float, seed: int
+    pseudo_gradient: OrderedDict[str, torch.Tensor], sigma: float
 ) -> OrderedDict[str, torch.Tensor]:
     """
     Add differential privacy noise to pseudo_gradient without clipping.
     Clipping should be done during local training.
     """
-    torch.manual_seed(seed)
     noisy_pseudo_gradient = OrderedDict()
     
     for name, param in pseudo_gradient.items():

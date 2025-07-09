@@ -32,6 +32,7 @@ sys.path.append(DATA_DIR)
 from client.base import ClientBase
 from data.utils.util import get_client_id_indices
 
+fix_random_seed(1)
 
 class ServerBase:
     def __init__(self, args: Namespace, algo: str):
@@ -47,7 +48,10 @@ class ServerBase:
         self.device = torch.device(
             "cuda" if self.args.gpu and torch.cuda.is_available() else "cpu"
         )
-        fix_random_seed(self.args.seed)
+        
+        # fix_random_seed(self.args.seed)
+        fix_random_seed(1)
+
         self.backbone = SimpleMLP  # LeNet5
         self.logger = Console(
             record=True,
@@ -159,7 +163,7 @@ class ServerBase:
             if E % self.args.verbose_gap == 0:
                 self.logger.log(
                     "[bold green]Global Model Performance on All Training Data:[/bold green]"
-                    f" Loss: {global_loss:.4f}, Accuracy: {global_acc:.2f} %"
+                    f" Loss: {global_loss:.4f}, Accuracy: {global_acc:.2f}%"
                 )
 
             if E % self.args.save_period == 0:

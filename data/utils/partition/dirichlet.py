@@ -10,7 +10,7 @@ def dirichlet_noniid_partition(
         train_data_raw: Dataset, 
         num_clients: int, 
         target_dataset: Dataset,
-        seed=42, 
+        seed=1, 
         alpha1=100, 
         alpha2=0.1, 
         transform=None,

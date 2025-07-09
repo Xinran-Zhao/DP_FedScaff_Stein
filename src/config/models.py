@@ -8,6 +8,23 @@ ARGS = {
     "cifar100": (3, 400, 100),
 }
 
+class SimpleMLP(nn.Module):    
+    def __init__(self, dataset, hidden_dim: int = 10):
+        super().__init__()
+        # For MNIST: 28*28 = 784 input features
+        input_dim = 28 * 28 if dataset == "mnist" else 32 * 32 * ARGS[dataset][0]
+        num_classes = ARGS[dataset][2]
+        
+        self.net = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(input_dim, hidden_dim), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, num_classes)
+        )
+
+    def forward(self, x):
+        return self.net(x) 
+
 
 class LeNet5(nn.Module):
     def __init__(self, dataset) -> None:
@@ -29,26 +46,3 @@ class LeNet5(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-
-
-class SimpleMLP(nn.Module):    
-    def __init__(self, dataset, hidden_dim: int = 128):
-        super().__init__()
-        # For MNIST: 28*28 = 784 input features
-        input_dim = 28 * 28 if dataset == "mnist" else 32 * 32 * ARGS[dataset][0]
-        num_classes = ARGS[dataset][2]
-        
-        self.net = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(input_dim, hidden_dim), 
-            nn.ReLU(),
-            nn.Linear(hidden_dim, num_classes)
-        )
-
-    def forward(self, x):
-        return self.net(x) 

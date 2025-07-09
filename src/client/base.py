@@ -6,7 +6,7 @@ import torch
 import numpy as np
 from path import Path
 from rich.console import Console
-from torch.utils.data import Subset, DataLoader
+from torch.utils.data import Subset, DataLoader, TensorDataset
 
 _CURRENT_DIR = Path(__file__).parent.abspath()
 
@@ -15,7 +15,7 @@ import sys
 sys.path.append(_CURRENT_DIR.parent)
 
 from data.utils.util import get_dataset, set_seed
-from src.config.util import add_dp_noise, add_dp_noise_only, apply_jse
+from src.config.util import add_dp_noise, add_dp_noise_only, apply_jse, get_mnist_loaders, fix_random_seed
 
 
 class ClientBase:
@@ -35,15 +35,24 @@ class ClientBase:
         self.device = torch.device(
             "cuda" if gpu and torch.cuda.is_available() else "cpu"
         )
-        set_seed(0)
+        fix_random_seed(1)
         self.client_id: int = None
         self.valset: Subset = None
         self.trainset: Subset = None
         self.testset: Subset = None
+        # initialize model
         self.model: torch.nn.Module = deepcopy(backbone).to(self.device)
         self.optimizer: torch.optim.Optimizer = torch.optim.SGD(
             self.model.parameters(), lr=local_lr
         )
+        
+        # Print initial model parameters for debugging
+        print(f"=== CLIENT {self.client_id} INITIAL MODEL ===")
+        initial_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
+        print(f"Initial params norm: {torch.norm(initial_params).item():.6f}")
+        print(f"Initial params mean: {initial_params.mean().item():.6f}")
+        print(f"Initial params std: {initial_params.std().item():.6f}")
+        print(f"First 10 params: {initial_params[:10]}")
         self.dataset = dataset
         self.batch_size = batch_size
         self.local_epochs = local_epochs
@@ -90,8 +99,12 @@ class ClientBase:
             pseudo_grad[key] = params_after_training[key] - parms_before_training[key]
 
         if self.dp_sigma > 0:
-            seed = epoch * 1000 + self.client_id
-            pseudo_grad = add_dp_noise_only(pseudo_grad, self.dp_sigma, seed)
+            # Need to add args.seed and current round as parameters to train() method
+            # Add to method signature:
+            # def train(self, client_id: int, model_params: OrderedDict[str, torch.Tensor], 
+            #          epoch: int, seed: int, round: int, evaluate=True, verbose=False, use_valset=False)
+            torch.manual_seed(self.client_id) # TODO: Update to use seed + round + client_id
+            pseudo_grad = add_dp_noise_only(pseudo_grad, self.dp_sigma)
             
             # Apply James-Stein estimator if enabled
             if self.jse:
@@ -107,19 +120,55 @@ class ClientBase:
         # Store initial parameters at the start of training
         initial_params = torch.cat([p.detach().clone().flatten() for p in self.model.parameters()])
         
-        # Create DataLoader for proper batch processing
-        batch_size = self.batch_size if self.batch_size > 0 else 64  # Default batch size if not specified
-        dataloader = DataLoader(self.trainset, batch_size=batch_size, shuffle=True)
+        train_loader, test_loader, client_loaders = get_mnist_loaders(client_num_per_round=10)
+        print('DataLoader info:')
+        print(f'  Dataset size: {len(train_loader.dataset)}')
+        print(f'  Batch size: {train_loader.batch_size}')
+        print(f'  Number of batches: {len(train_loader)}')
+        
+        # Print info about first few mini-batches
+        print('\nMini-batch samples:')
+        for batch_idx, (x, y) in enumerate(train_loader):
+            # if batch_idx = 937:
+            print(f'  Batch {batch_idx}:')
+            print(f'    Input shape: {x.shape}')
+            print(f'    Labels shape: {y.shape}')
+            print(f'    Labels: {y.tolist()}')
+            if batch_idx >= 2:  # Only show first 3 batches
+                break
+        
+        # Counter to track minibatches
+        minibatch_counter = 0
         
         for epoch in range(self.local_epochs):
-            for x, y in dataloader:
+            for x, y in train_loader:
                 x, y = x.to(self.device), y.to(self.device)
                 logits = self.model(x)
                 loss = self.criterion(logits, y)
                 # print('loss', loss)
                 self.optimizer.zero_grad()
                 loss.backward()
+                
+                # Print mini-batch gradients for debugging (first minibatch only)
+                if minibatch_counter == 0:
+                    print(f"=== FIRST MINI-BATCH GRADIENT (Client {self.client_id}) ===")
+                    print(f"Loss value: {loss.item():.6f}")
+                    grad_norm = 0
+                    for name, param in self.model.named_parameters():
+                        if param.grad is not None:
+                            param_grad_norm = param.grad.norm().item()
+                            grad_norm += param_grad_norm ** 2
+                            print(f"{name}:")
+                            print(f"  Gradient norm: {param_grad_norm:.6f}")
+                            print(f"  Gradient mean: {param.grad.mean().item():.6f}")
+                            print(f"  Gradient std: {param.grad.std().item():.6f}")
+                            print(f"  Gradient shape: {param.grad.shape}")
+                            print(f"  First 10 gradient values: {param.grad.flatten()[:10].tolist()}")
+                    print(f"Total gradient norm: {grad_norm**0.5:.6f}")
+                    print("=" * 60)
+                
                 self.optimizer.step()
+                minibatch_counter += 1
                 
                 # TODO: the following clipping part is the same as scaffold.py, we should write a function to avoid code duplication
                 # Only apply clipping when differential privacy is needed
@@ -214,6 +263,12 @@ class ClientBase:
             )
 
     def get_data_batch(self):
+        '''
+        Only used in scaffold.py, not in base.py
+        '''
+        # Set seed for reproducible batch sampling
+        np.random.seed(1)
+        
         batch_size = (
             self.batch_size
             if self.batch_size > 0
